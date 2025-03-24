@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Table of Contents"><title>leo_lang - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-46132b98.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="leo_lang" data-themes="" data-resource-suffix="" data-rustdoc-version="1.85.1 (4eb161250 2025-03-15)" data-channel="1.85.1" data-search-js="search-75f5ac3e.js" data-settings-js="settings-0f613d39.js" ><script src="../static.files/storage-59e33391.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-5f194d8c.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../leo_lang/index.html">leo_<wbr>lang</a><span class="version">2.4.1</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#table-of-contents" title="Table of Contents">Table of Contents</a></li><li><a href="#-overview" title="🍎 Overview">🍎 Overview</a></li><li><a href="#-build-guide" title="⚙️️ Build Guide">⚙️️ Build Guide</a><ul><li><a href="#-install-rust" title="🦀 Install Rust">🦀 Install Rust</a></li><li><a href="#-build-from-source-code" title="🐙 Build from Source Code">🐙 Build from Source Code</a></li><li><a href="#-update-from-leo" title="🦁 Update from Leo">🦁 Update from Leo</a></li></ul></li><li><a href="#-quick-start" title="🚀 Quick Start">🚀 Quick Start</a></li><li><a href="#-troubleshooting" title="🧰 Troubleshooting">🧰 Troubleshooting</a></li><li><a href="#-documentation" title="📖 Documentation">📖 Documentation</a></li><li><a href="#-contributing" title="🤝 Contributing">🤝 Contributing</a></li><li><a href="#-contributors" title="❤️ Contributors">❤️ Contributors</a></li><li><a href="#-license" title="🛡️ License">🛡️ License</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1>Crate <span>leo_lang</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/leo_lang/lib.rs.html#17-21">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><!--p align="center">
+     <img width="1412" src="https://cdn.aleo.org/leo/banner.png">
+</p-->
+<h1 align="center">The Leo Programming Language</h1>
+<p align="center">
+    <a href="https://circleci.com/gh/ProvableHQ/leo"><img src="https://circleci.com/gh/ProvableHQ/leo.svg?style=svg&circle-token=00960191919c40be0774e00ce8f7fa1fcaa20c00"></a>
+    <a href="https://discord.gg/aleo"><img src="https://img.shields.io/discord/700454073459015690?logo=discord"/></a>
+    <a href="https://github.com/ProvableHQ/leo/blob/mainnet/CONTRIBUTORS.md"><img src="https://img.shields.io/badge/contributors-393-ee8449"/></a>
+     <a href="https://twitter.com/ProvableHQ"><img src="https://img.shields.io/twitter/follow/ProvableHQ?style=social"/></a>
+</p>
+<div id="top"></div>
+Leo is an imperative, statically-typed programming language built for writing private applications.
+<h3 id="table-of-contents"><a class="doc-anchor" href="#table-of-contents">§</a><a name='TableofContents'></a>Table of Contents</h3>
+<ul>
+<li><a href="#-overview">🍎 Overview</a></li>
+<li><a href="#-build-guide">⚙️️ Build Guide</a>
+<ul>
+<li><a href="#-install-rust">🦀 Install Rust</a></li>
+<li><a href="#-build-from-source-code">🐙 Build from Source Code</a></li>
+<li><a href="#-update-from-leo">🦁 Update from Leo</a></li>
+<li><a href="#-download-using-cargo">📦 Download using Cargo</a></li>
+</ul>
+</li>
+<li><a href="#-quick-start">🚀 Quick Start</a></li>
+<li><a href="#-troubleshooting">🧰 Troubleshooting</a></li>
+<li><a href="#-documentation">📖 Documentation</a></li>
+<li><a href="#-contributing">🤝 Contributing</a></li>
+<li><a href="#-contributors">❤️ Contributors</a></li>
+<li><a href="#-license">🛡️ License</a></li>
+</ul>
+<h3 id="-overview"><a class="doc-anchor" href="#-overview">§</a>🍎 Overview</h3>
+<p>Welcome to the Leo programming language.</p>
+<p>Leo provides a high-level language that abstracts low-level cryptographic concepts and makes it easy to
+integrate private applications into your stack. Leo compiles to circuits making zero-knowledge proofs practical.</p>
+<p>The syntax of Leo is influenced by traditional programming languages like JavaScript, Scala, and Rust, with a strong emphasis on readability and ease-of-use.
+Leo offers developers with tools to sanity check circuits including unit tests, integration tests, and console functions.</p>
+<p>Leo is one part of a greater ecosystem for building private applications on <a href="https://leo-lang.org/">Aleo</a>.
+The language is currently in an alpha stage and is subject to breaking changes.</p>
+<h3 id="-build-guide"><a class="doc-anchor" href="#-build-guide">§</a>⚙️️ Build Guide</h3><h4 id="-install-rust"><a class="doc-anchor" href="#-install-rust">§</a>🦀 Install Rust</h4>
+<p>We recommend installing Rust using <a href="https://www.rustup.rs/">rustup</a>. You can install <code>rustup</code> as follows:</p>
+<ul>
+<li>
+<p>macOS or Linux:</p>
+<div class="example-wrap"><pre class="language-bash"><code>curl --proto &#39;=https&#39; --tlsv1.2 -sSf https://sh.rustup.rs | sh</code></pre></div></li>
+<li>
+<p>Windows (64-bit):</p>
+<p>Download the <a href="https://win.rustup.rs/x86_64">Windows 64-bit executable</a> and follow the on-screen instructions.</p>
+</li>
+<li>
+<p>Windows (32-bit):</p>
+<p>Download the <a href="https://win.rustup.rs/i686">Windows 32-bit executable</a> and follow the on-screen instructions.</p>
+</li>
+</ul>
+<h4 id="-build-from-source-code"><a class="doc-anchor" href="#-build-from-source-code">§</a>🐙 Build from Source Code</h4>
+<p>We recommend installing Leo by building from the source code as follows:</p>
+<div class="example-wrap"><pre class="language-bash"><code># Download the source code
+git clone https://github.com/ProvableHQ/leo
+cd leo
+
+# Install &#39;leo&#39;
+cargo install --path .</code></pre></div>
+<p>Now to use leo, in your terminal, run:</p>
+<div class="example-wrap"><pre class="language-bash"><code>leo</code></pre></div><h4 id="-update-from-leo"><a class="doc-anchor" href="#-update-from-leo">§</a>🦁 Update from Leo</h4>
+<p>You can update Leo to the latest version using the following command:</p>
+<div class="example-wrap"><pre class="language-bash"><code>leo update</code></pre></div>
+<p>Now to check the version of leo, in your terminal, run:</p>
+<div class="example-wrap"><pre class="language-bash"><code>leo --version</code></pre></div><h3 id="-quick-start"><a class="doc-anchor" href="#-quick-start">§</a>🚀 Quick Start</h3>
+<p>Use the Leo CLI to create a new project</p>
+<div class="example-wrap"><pre class="language-bash"><code># create a new `hello-world` Leo project
+leo new helloworld
+cd helloworld
+
+# build &amp; setup &amp; prove &amp; verify
+leo run main 0u32 1u32</code></pre></div>
+<p>The <code>leo new</code> command creates a new Leo project with a given name.</p>
+<p>The <code>leo run</code> command will compile the program into Aleo instructions and run it.</p>
+<p>Congratulations! You’ve just run your first Leo program.</p>
+<h3 id="-troubleshooting"><a class="doc-anchor" href="#-troubleshooting">§</a>🧰 Troubleshooting</h3>
+<p>If you are having trouble installing and using Leo, please check out our <a href="docs/troubleshooting.md">guide</a>.</p>
+<p>If the issue still persists, please <a href="https://github.com/ProvableHQ/leo/issues/new/choose">open an issue</a>.</p>
+<h3 id="-documentation"><a class="doc-anchor" href="#-documentation">§</a>📖 Documentation</h3>
+<ul>
+<li><a href="https://github.com/ProvableHQ/grammars/blob/master/leo.abnf">Leo ABNF Grammar</a></li>
+<li><a href="https://docs.leo-lang.org/">Homepage</a></li>
+</ul>
+<h3 id="-contributing"><a class="doc-anchor" href="#-contributing">§</a>🤝 Contributing</h3>
+<p>Please see our guidelines in the <a href="./CONTRIBUTING.md">developer documentation</a></p>
+<h3 id="-contributors"><a class="doc-anchor" href="#-contributors">§</a>❤️ Contributors</h3>
+<p>The list of contributors has been moved to a separate repository.
+View all Leo contributors <a href="https://github.com/ProvableHQ/leo-contributors/blob/master/CONTRIBUTORS.md">here</a>.</p>
+<h3 id="-license"><a class="doc-anchor" href="#-license">§</a>🛡️ License</h3>
+<p><a href="./LICENSE.md"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3" /></a></p>
+<p align="right"><a href="#top">🔼 Back to top</a></p></div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="cli/index.html" title="mod leo_lang::cli">cli</a></div></li></ul></section></div></main></body></html>
