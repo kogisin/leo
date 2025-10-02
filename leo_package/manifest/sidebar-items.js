@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MANIFEST_FILENAME"],"fn":["current_version"],"struct":["Manifest"]};

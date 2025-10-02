@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["check_snarkvm_constructor"],"struct":["CodeGeneratingVisitor"]};

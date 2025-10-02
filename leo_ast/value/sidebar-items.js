@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Value"],"macro":["implement_const_binary","implement_const_unary"]};

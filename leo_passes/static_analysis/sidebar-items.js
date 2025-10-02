@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["analyze_expression","analyze_program","analyze_statement","analyzer","await_checker","future_checker"]};
+window.SIDEBAR_ITEMS = {"mod":["await_checker","future_checker","program","visitor"],"struct":["StaticAnalyzing"]};

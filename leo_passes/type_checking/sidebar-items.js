@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["check_expressions","check_program","check_statements","checker","scope_state"]};
+window.SIDEBAR_ITEMS = {"mod":["ast","program","scope_state","visitor"],"struct":["TypeChecking","TypeCheckingInput"]};
