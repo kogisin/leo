@@ -1,11 +1,12 @@
 /*
-namespace = "Execute"
-expectation = "Pass"
-[[cases]]
+seed = 123456789
+min_height = 16
+
+[case]
 program = "test.aleo"
 function = "main"
 input = ["0group"]
-[[cases]]
+[case]
 program = "test.aleo"
 function = "main"
 input = ["2group"]
@@ -23,4 +24,7 @@ program test.aleo {
         assert_eq(d, f);
         return (b, d);
     }
+
+    @noupgrade
+    async constructor() {}
 }

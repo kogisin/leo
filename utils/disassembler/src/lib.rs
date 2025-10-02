@@ -20,14 +20,12 @@ use leo_span::Symbol;
 
 use snarkvm::{
     prelude::{Itertools, Network},
-    synthesizer::program::{CommandTrait, InstructionTrait, Program, ProgramCore},
+    synthesizer::program::{Program, ProgramCore},
 };
 
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
-pub fn disassemble<N: Network, Instruction: InstructionTrait<N>, Command: CommandTrait<N>>(
-    program: ProgramCore<N, Instruction, Command>,
-) -> Stub {
+pub fn disassemble<N: Network>(program: ProgramCore<N>) -> Stub {
     let program_id = ProgramId::from(program.id());
     Stub {
         imports: program.imports().into_iter().map(|(id, _)| ProgramId::from(id)).collect(),
@@ -86,17 +84,17 @@ pub fn disassemble<N: Network, Instruction: InstructionTrait<N>, Command: Comman
     }
 }
 
-pub fn disassemble_from_str<N: Network>(name: &str, program: &str) -> Result<Stub, UtilError> {
+pub fn disassemble_from_str<N: Network>(name: impl fmt::Display, program: &str) -> Result<Stub, UtilError> {
     match Program::<N>::from_str(program) {
         Ok(p) => Ok(disassemble(p)),
-        Err(_) => Err(UtilError::snarkvm_parsing_error(name, Default::default())),
+        Err(_) => Err(UtilError::snarkvm_parsing_error(name)),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use leo_span::symbol::create_session_if_not_set_then;
+    use leo_span::create_session_if_not_set_then;
     use snarkvm::synthesizer::program::Program;
     use std::fs;
 
@@ -110,10 +108,10 @@ mod tests {
             match program {
                 Ok(p) => {
                     let disassembled = disassemble(p);
-                    println!("{}", disassembled);
+                    println!("{disassembled}");
                 }
                 Err(e) => {
-                    println!("{}", e);
+                    println!("{e}");
                 }
             }
         });

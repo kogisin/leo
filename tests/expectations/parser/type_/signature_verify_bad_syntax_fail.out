@@ -1,13 +1,5 @@
-namespace = "Parse"
-expectation = "Fail"
-outputs = ["""
-Error [EPAR0370021]: The type of `signature` has no associated function `verify` that takes 3 argument(s).
-    --> test:5:23
+Error [EPAR0370005]: expected an identifier, a program id, an address literal, an integer literal, a static string, '!', '-', '(', '[', 'true', 'false', 'async', 'block', 'network', 'self' -- found 'signature'
+    --> test:4:23
      |
-   5 |         let a: bool = signature.verify(s, a, v);
-     |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
-Error [EPAR0370005]: expected ) -- found ','
-    --> test:6:17
-     |
-   6 |         assert(a, b);
-     |                 ^"""]
+   4 |         let a: bool = signature.verify(s, a, v);
+     |                       ^^^^^^^^^

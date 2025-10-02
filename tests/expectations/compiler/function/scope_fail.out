@@ -1,8 +1,5 @@
-namespace = "Compile"
-expectation = "Fail"
-outputs = ["""
-Error [EPAR0370005]: expected : -- found '='
-    --> compiler-test:10:22
+Error [ETYC0372005]: Unknown variable `myGlobal`
+    --> compiler-test:5:16
      |
-  10 |         let myGlobal = 42field;
-     |                      ^"""]
+   5 |         return myGlobal;
+     |                ^^^^^^^^

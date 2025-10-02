@@ -26,6 +26,7 @@ use crate::{
     Node,
     NodeID,
     Output,
+    Path,
     ProgramId,
     TupleType,
     Type,
@@ -41,7 +42,7 @@ use snarkvm::{
         RegisterType::{ExternalRecord, Future, Plaintext, Record},
     },
     prelude::{Network, ValueType},
-    synthesizer::program::{ClosureCore, CommandTrait, FunctionCore, InstructionTrait},
+    synthesizer::program::{ClosureCore, FunctionCore},
 };
 use std::fmt;
 
@@ -106,12 +107,11 @@ impl FunctionStub {
         self.name() == sym::main
     }
 
-    ///
     /// Private formatting method used for optimizing [fmt::Debug] and [fmt::Display] implementations.
-    ///
     fn format(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.variant {
             Variant::Inline => write!(f, "inline ")?,
+            Variant::Script => write!(f, "script ")?,
             Variant::Function | Variant::AsyncFunction => write!(f, "function ")?,
             Variant::Transition | Variant::AsyncTransition => write!(f, "transition ")?,
         }
@@ -129,10 +129,7 @@ impl FunctionStub {
     }
 
     /// Converts from snarkvm function type to leo FunctionStub, while also carrying the parent program name.
-    pub fn from_function_core<N: Network, Instruction: InstructionTrait<N>, Command: CommandTrait<N>>(
-        function: &FunctionCore<N, Instruction, Command>,
-        program: Symbol,
-    ) -> Self {
+    pub fn from_function_core<N: Network>(function: &FunctionCore<N>, program: Symbol) -> Self {
         let outputs = function
             .outputs()
             .iter()
@@ -157,7 +154,14 @@ impl FunctionStub {
                 }],
                 ValueType::Record(id) => vec![Output {
                     mode: Mode::None,
-                    type_: Type::Composite(CompositeType { id: Identifier::from(id), program: Some(program) }),
+                    type_: Type::Composite(CompositeType {
+                        path: {
+                            let ident = Identifier::from(id);
+                            Path::from(ident).with_absolute_path(Some(vec![ident.name]))
+                        },
+                        const_arguments: Vec::new(),
+                        program: Some(program),
+                    }),
                     span: Default::default(),
                     id: Default::default(),
                 }],
@@ -167,7 +171,11 @@ impl FunctionStub {
                         span: Default::default(),
                         id: Default::default(),
                         type_: Type::Composite(CompositeType {
-                            id: Identifier::from(loc.resource()),
+                            path: {
+                                let ident = Identifier::from(loc.resource());
+                                Path::from(ident).with_absolute_path(Some(vec![ident.name]))
+                            },
+                            const_arguments: Vec::new(),
                             program: Some(ProgramId::from(loc.program_id()).name.name),
                         }),
                     }]
@@ -178,7 +186,7 @@ impl FunctionStub {
                     id: Default::default(),
                     type_: Type::Future(FutureType::new(
                         Vec::new(),
-                        Some(Location::new(program, Identifier::from(function.name()).name)),
+                        Some(Location::new(program, vec![Symbol::intern(&function.name().to_string())])),
                         false,
                     )),
                 }],
@@ -230,7 +238,14 @@ impl FunctionStub {
                         ValueType::Record(id) => Input {
                             identifier: arg_name,
                             mode: Mode::None,
-                            type_: Type::Composite(CompositeType { id: Identifier::from(id), program: Some(program) }),
+                            type_: Type::Composite(CompositeType {
+                                path: {
+                                    let ident = Identifier::from(id);
+                                    Path::from(ident).with_absolute_path(Some(vec![ident.name]))
+                                },
+                                const_arguments: Vec::new(),
+                                program: Some(program),
+                            }),
                             span: Default::default(),
                             id: Default::default(),
                         },
@@ -240,7 +255,11 @@ impl FunctionStub {
                             span: Default::default(),
                             id: Default::default(),
                             type_: Type::Composite(CompositeType {
-                                id: Identifier::from(loc.resource()),
+                                path: {
+                                    let ident = Identifier::from(loc.resource());
+                                    Path::from(ident).with_absolute_path(Some(vec![ident.name]))
+                                },
+                                const_arguments: Vec::new(),
                                 program: Some(ProgramId::from(loc.program_id()).name.name),
                             }),
                         },
@@ -255,11 +274,7 @@ impl FunctionStub {
         }
     }
 
-    pub fn from_finalize<N: Network, Instruction: InstructionTrait<N>, Command: CommandTrait<N>>(
-        function: &FunctionCore<N, Instruction, Command>,
-        key_name: Symbol,
-        program: Symbol,
-    ) -> Self {
+    pub fn from_finalize<N: Network>(function: &FunctionCore<N>, key_name: Symbol, program: Symbol) -> Self {
         Self {
             annotations: Vec::new(),
             variant: Variant::AsyncFunction,
@@ -277,10 +292,9 @@ impl FunctionStub {
                         PlaintextFinalizeType(val) => Type::from_snarkvm(val, Some(program)),
                         FutureFinalizeType(val) => Type::Future(FutureType::new(
                             Vec::new(),
-                            Some(Location::new(
-                                Identifier::from(val.program_id().name()).name,
-                                Symbol::intern(&format!("finalize/{}", val.resource())),
-                            )),
+                            Some(Location::new(Identifier::from(val.program_id().name()).name, vec![Symbol::intern(
+                                &format!("finalize/{}", val.resource()),
+                            )])),
                             false,
                         )),
                     },
@@ -295,10 +309,7 @@ impl FunctionStub {
         }
     }
 
-    pub fn from_closure<N: Network, Instruction: InstructionTrait<N>>(
-        closure: &ClosureCore<N, Instruction>,
-        program: Symbol,
-    ) -> Self {
+    pub fn from_closure<N: Network>(closure: &ClosureCore<N>, program: Symbol) -> Self {
         let outputs = closure
             .outputs()
             .iter()

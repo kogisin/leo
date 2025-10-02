@@ -14,43 +14,41 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-use snarkvm::prelude::{CanaryV0, MainnetV0, TestnetV0};
+use leo_ast::NetworkName;
+use leo_errors::UtilError;
+use leo_package::{fetch_from_network, verify_valid_program};
 
-pub mod block;
+use super::*;
+
+mod block;
 pub use block::LeoBlock;
 
-pub mod program;
+mod program;
 pub use program::LeoProgram;
 
-pub mod state_root;
+mod state_root;
 pub use state_root::StateRoot;
 
-pub mod committee;
+mod committee;
 pub use committee::LeoCommittee;
 
-pub mod mempool;
+mod mempool;
 pub use mempool::LeoMempool;
 
-pub mod peers;
+mod peers;
 pub use peers::LeoPeers;
 
-pub mod transaction;
+mod transaction;
 pub use transaction::LeoTransaction;
 
 mod utils;
 use utils::*;
 
-use leo_errors::UtilError;
-use leo_retriever::{NetworkName, fetch_from_network, verify_valid_program};
-
 ///  Query live data from the Aleo network.
 #[derive(Parser, Debug)]
 pub struct LeoQuery {
-    #[clap(short, long, global = true, help = "Endpoint to retrieve network state from. Defaults to entry in `.env`.")]
-    pub endpoint: Option<String>,
-    #[clap(short, long, global = true, help = "Network to use. Defaults to entry in `.env`.")]
-    pub(crate) network: Option<String>,
+    #[clap(flatten)]
+    pub(crate) env_override: EnvOptions,
     #[clap(subcommand)]
     pub command: QueryCommands,
 }
@@ -69,21 +67,17 @@ impl Command for LeoQuery {
 
     fn apply(self, context: Context, _: Self::Input) -> Result<Self::Output> {
         // Parse the network.
-        let network = NetworkName::try_from(context.get_network(&self.network)?)?;
-        let endpoint = context.get_endpoint(&self.endpoint)?;
-        match network {
-            NetworkName::MainnetV0 => handle_query::<MainnetV0>(self, context, &network.to_string(), &endpoint),
-            NetworkName::TestnetV0 => handle_query::<TestnetV0>(self, context, &network.to_string(), &endpoint),
-            NetworkName::CanaryV0 => handle_query::<CanaryV0>(self, context, &network.to_string(), &endpoint),
-        }
+        let network: NetworkName = get_network(&self.env_override.network)?;
+        let endpoint = get_endpoint(&self.env_override.endpoint)?;
+        handle_query(self, context, network, &endpoint)
     }
 }
 
 // A helper function to handle the `query` command.
-fn handle_query<N: Network>(
+fn handle_query(
     query: LeoQuery,
     context: Context,
-    network: &str,
+    network: NetworkName,
     endpoint: &str,
 ) -> Result<<LeoQuery as Command>::Output> {
     let recursive = context.recursive;
@@ -117,16 +111,16 @@ fn handle_query<N: Network>(
     };
 
     // Make GET request to retrieve on-chain state.
-    let url = format!("{}/{}/{output}", endpoint, network);
+    let url = format!("{endpoint}/{network}/{output}");
     let result = fetch_from_network(&url)?;
     if !recursive {
         tracing::info!("✅ Successfully retrieved data from '{url}'.\n");
-        println!("{}\n", result);
+        println!("{result}\n");
     }
 
     // Verify that the source file parses into a valid Aleo program.
     if let Some(name) = program {
-        verify_valid_program::<N>(&name, &result)?;
+        verify_valid_program(&name, &result)?;
     }
 
     Ok(result)

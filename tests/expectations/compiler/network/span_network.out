@@ -1,0 +1,5 @@
+Error [ETYC0372083]: A program must have at least one transition function.
+    --> compiler-test:4:9
+     |
+   4 | program parent.aleo {
+     |         ^^^^^^^^^^^

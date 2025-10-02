@@ -1,22 +1,23 @@
 /*
-namespace = "Execute"
-expectation = "Pass"
-[[cases]]
+seed = 123456789
+min_height = 16
+
+[case]
 program = "test.aleo"
 function = "dubble"
 input = []
 private_key = "APrivateKey1zkpH5Ne1Xfd79t61VhK7b6yaYz92yW5dbuVkiFheR7rwCDE"
-[[cases]]
+[case]
 program = "test.aleo"
 function = "dubble"
 input = []
 private_key = "APrivateKey1zkpH5Ne1Xfd79t61VhK7b6yaYz92yW5dbuVkiFheR7rwCDE"
-[[cases]]
+[case]
 program = "test.aleo"
 function = "dubble"
 input = []
 private_key = "APrivateKey1zkpH5Ne1Xfd79t61VhK7b6yaYz92yW5dbuVkiFheR7rwCDE"
-[[cases]]
+[case]
 program = "test.aleo"
 function = "dubble"
 input = []
@@ -50,4 +51,7 @@ program test.aleo {
         }
         Mapping::set(counter, addr, current_value + 0__1u64);
     }
+
+    @noupgrade
+    async constructor() {}
 }

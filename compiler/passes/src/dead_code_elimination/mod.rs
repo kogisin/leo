@@ -49,28 +49,46 @@
 //! - Unique variable names (provided by SSA)
 //! - Flattened code (provided by the flattening pass)
 
-mod eliminate_expression;
-
-mod eliminate_statement;
-
-mod eliminate_program;
-
-pub mod dead_code_eliminator;
-pub use dead_code_eliminator::*;
-
 use crate::Pass;
 
-use leo_ast::{Ast, NodeBuilder, ProgramReconstructor};
+use leo_ast::ProgramReconstructor as _;
 use leo_errors::Result;
 
-impl<'a> Pass for DeadCodeEliminator<'a> {
-    type Input = (Ast, &'a NodeBuilder);
-    type Output = Result<Ast>;
+mod ast;
 
-    fn do_pass((ast, node_builder): Self::Input) -> Self::Output {
-        let mut reconstructor = DeadCodeEliminator::new(node_builder);
-        let program = reconstructor.reconstruct_program(ast.into_repr());
+mod program;
 
-        Ok(Ast::new(program))
+mod visitor;
+use visitor::*;
+
+pub struct DeadCodeEliminatingOutput {
+    pub statements_before: u32,
+    pub statements_after: u32,
+}
+
+pub struct DeadCodeEliminating;
+
+impl Pass for DeadCodeEliminating {
+    type Input = ();
+    type Output = DeadCodeEliminatingOutput;
+
+    const NAME: &str = "DeadCodeEliminating";
+
+    fn do_pass(_input: Self::Input, state: &mut crate::CompilerState) -> Result<Self::Output> {
+        let mut ast = std::mem::take(&mut state.ast);
+        let mut visitor = DeadCodeEliminatingVisitor {
+            state,
+            used_variables: Default::default(),
+            program_name: Default::default(),
+            statements_before: 0,
+            statements_after: 0,
+        };
+        ast.ast = visitor.reconstruct_program(ast.ast);
+        visitor.state.handler.last_err()?;
+        visitor.state.ast = ast;
+        Ok(DeadCodeEliminatingOutput {
+            statements_before: visitor.statements_before,
+            statements_after: visitor.statements_after,
+        })
     }
 }

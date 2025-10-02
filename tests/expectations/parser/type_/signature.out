@@ -1,73 +1,826 @@
-namespace = "Parse"
-expectation = "Pass"
-
-[[outputs]]
-
-[outputs.imports]
-
-[outputs.stubs]
-
-[outputs.program_scopes.test]
-program_id = '{"name":"test","network":"\"{\\\"id\\\":\\\"1\\\",\\\"name\\\":\\\"aleo\\\",\\\"span\\\":\\\"{\\\\\\\"lo\\\\\\\":0,\\\\\\\"hi\\\\\\\":0}\\\"}\""}'
-consts = []
-structs = []
-mappings = []
-functions = [
-    [
-    "baz",
-    { annotations = [], variant = "Transition", identifier = '{"id":"2","name":"baz","span":"{\"lo\":37,\"hi\":40}"}', output = [], output_type = "Unit", id = 30, input = [
-    { identifier = '{"id":"3","name":"s","span":"{\"lo\":41,\"hi\":42}"}', mode = "None", type_ = "Signature", id = 4, span = { lo = 41, hi = 53 } },
-    { identifier = '{"id":"5","name":"a","span":"{\"lo\":55,\"hi\":56}"}', mode = "None", type_ = "Address", id = 6, span = { lo = 55, hi = 65 } },
-    { identifier = '{"id":"7","name":"v","span":"{\"lo\":67,\"hi\":68}"}', mode = "None", id = 9, type_ = { Composite = { id = '{"id":"8","name":"value","span":"{\"lo\":70,\"hi\":75}"}' } }, span = { lo = 67, hi = 75 } },
-], block = { id = 29, statements = [
-    { Definition = { declaration_type = "Let", type_ = "Boolean", id = 17, place = { Identifier = '{"id":"10","name":"a","span":"{\"lo\":91,\"hi\":92}"}' }, value = { Access = { AssociatedFunction = { variant = '{"id":"11","name":"signature","span":"{\"lo\":101,\"hi\":110}"}', name = '{"id":"12","name":"verify","span":"{\"lo\":112,\"hi\":118}"}', id = 16, arguments = [
-    { Identifier = '{"id":"13","name":"s","span":"{\"lo\":119,\"hi\":120}"}' },
-    { Identifier = '{"id":"14","name":"a","span":"{\"lo\":122,\"hi\":123}"}' },
-    { Identifier = '{"id":"15","name":"v","span":"{\"lo\":125,\"hi\":126}"}' },
-], span = { lo = 101, hi = 127 } } } }, span = { lo = 87, hi = 127 } } },
-    { Definition = { declaration_type = "Let", type_ = "Boolean", id = 25, place = { Identifier = '{"id":"18","name":"b","span":"{\"lo\":141,\"hi\":142}"}' }, value = { Access = { AssociatedFunction = { variant = '{"id":"23","name":"signature","span":"{\"lo\":0,\"hi\":0}"}', name = '{"id":"20","name":"verify","span":"{\"lo\":153,\"hi\":159}"}', id = 24, arguments = [
-    { Identifier = '{"id":"19","name":"s","span":"{\"lo\":151,\"hi\":152}"}' },
-    { Identifier = '{"id":"21","name":"a","span":"{\"lo\":160,\"hi\":161}"}' },
-    { Identifier = '{"id":"22","name":"v","span":"{\"lo\":163,\"hi\":164}"}' },
-], span = { lo = 151, hi = 165 } } } }, span = { lo = 137, hi = 165 } } },
-    { Assert = { id = 28, variant = { AssertEq = [
-    { Identifier = '{"id":"26","name":"a","span":"{\"lo\":185,\"hi\":186}"}' },
-    { Identifier = '{"id":"27","name":"b","span":"{\"lo\":188,\"hi\":189}"}' },
-] }, span = { lo = 175, hi = 184 } } },
-], span = { lo = 77, hi = 197 } }, span = { lo = 26, hi = 197 } },
-],
-    [
-    "bar",
-    { annotations = [], variant = "Transition", identifier = '{"id":"31","name":"bar","span":"{\"lo\":214,\"hi\":217}"}', id = 43, input = [{ identifier = '{"id":"32","name":"x","span":"{\"lo\":218,\"hi\":219}"}', mode = "None", id = 33, type_ = { Integer = "U8" }, span = { lo = 218, hi = 223 } }], output = [{ mode = "None", id = 34, type_ = { Integer = "U8" }, span = { lo = 228, hi = 230 } }], output_type = { Integer = "U8" }, block = { id = 42, statements = [
-    { Definition = { declaration_type = "Let", id = 39, place = { Identifier = '{"id":"35","name":"signature","span":"{\"lo\":245,\"hi\":254}"}' }, type_ = { Integer = "U8" }, value = { Binary = { op = "Add", id = 38, left = { Literal = { Integer = [
-    "U8",
-    "1",
-    { span = { lo = 261, hi = 264 } },
-    36,
-] } }, right = { Identifier = '{"id":"37","name":"x","span":"{\"lo\":267,\"hi\":268}"}' }, span = { lo = 261, hi = 268 } } }, span = { lo = 241, hi = 268 } } },
-    { Return = { id = 41, expression = { Identifier = '{"id":"40","name":"signature","span":"{\"lo\":285,\"hi\":294}"}' }, span = { lo = 278, hi = 295 } } },
-], span = { lo = 231, hi = 301 } }, span = { lo = 203, hi = 301 } },
-],
-    [
-    "bax",
-    { annotations = [], variant = "Transition", identifier = '{"id":"44","name":"bax","span":"{\"lo\":317,\"hi\":320}"}', output = [], output_type = "Unit", id = 64, input = [
-    { identifier = '{"id":"45","name":"s","span":"{\"lo\":321,\"hi\":322}"}', mode = "None", type_ = "Signature", id = 46, span = { lo = 321, hi = 333 } },
-    { identifier = '{"id":"47","name":"a","span":"{\"lo\":335,\"hi\":336}"}', mode = "None", type_ = "Address", id = 48, span = { lo = 335, hi = 345 } },
-    { identifier = '{"id":"49","name":"v","span":"{\"lo\":347,\"hi\":348}"}', mode = "None", id = 51, type_ = { Composite = { id = '{"id":"50","name":"value","span":"{\"lo\":350,\"hi\":355}"}' } }, span = { lo = 347, hi = 355 } },
-], block = { id = 63, statements = [
-    { Definition = { declaration_type = "Let", type_ = "Boolean", id = 59, place = { Identifier = '{"id":"52","name":"a","span":"{\"lo\":370,\"hi\":371}"}' }, value = { Access = { AssociatedFunction = { variant = '{"id":"53","name":"signature","span":"{\"lo\":380,\"hi\":389}"}', name = '{"id":"54","name":"sign","span":"{\"lo\":391,\"hi\":395}"}', id = 58, arguments = [
-    { Identifier = '{"id":"55","name":"s","span":"{\"lo\":396,\"hi\":397}"}' },
-    { Identifier = '{"id":"56","name":"a","span":"{\"lo\":399,\"hi\":400}"}' },
-    { Identifier = '{"id":"57","name":"v","span":"{\"lo\":402,\"hi\":403}"}' },
-], span = { lo = 380, hi = 404 } } } }, span = { lo = 366, hi = 404 } } },
-    { Assert = { id = 62, variant = { AssertEq = [
-    { Identifier = '{"id":"60","name":"a","span":"{\"lo\":423,\"hi\":424}"}' },
-    { Identifier = '{"id":"61","name":"b","span":"{\"lo\":426,\"hi\":427}"}' },
-] }, span = { lo = 413, hi = 422 } } },
-], span = { lo = 357, hi = 434 } }, span = { lo = 306, hi = 434 } },
-],
-]
-
-[outputs.program_scopes.test.span]
-lo = 2
-hi = 436
+{
+  "modules": {},
+  "imports": {},
+  "stubs": {},
+  "program_scopes": {
+    "test": {
+      "program_id": {
+        "name": {
+          "name": "test",
+          "span": {
+            "lo": 9,
+            "hi": 13
+          },
+          "id": 80
+        },
+        "network": {
+          "name": "aleo",
+          "span": {
+            "lo": 14,
+            "hi": 18
+          },
+          "id": 81
+        }
+      },
+      "consts": [],
+      "structs": [],
+      "mappings": [],
+      "functions": [
+        [
+          "baz",
+          {
+            "annotations": [],
+            "variant": "Transition",
+            "identifier": {
+              "name": "baz",
+              "span": {
+                "lo": 36,
+                "hi": 39
+              },
+              "id": 0
+            },
+            "const_parameters": [],
+            "input": [
+              {
+                "identifier": {
+                  "name": "s",
+                  "span": {
+                    "lo": 40,
+                    "hi": 41
+                  },
+                  "id": 1
+                },
+                "mode": "None",
+                "type_": "Signature",
+                "span": {
+                  "lo": 40,
+                  "hi": 52
+                },
+                "id": 2
+              },
+              {
+                "identifier": {
+                  "name": "a",
+                  "span": {
+                    "lo": 54,
+                    "hi": 55
+                  },
+                  "id": 3
+                },
+                "mode": "None",
+                "type_": "Address",
+                "span": {
+                  "lo": 54,
+                  "hi": 64
+                },
+                "id": 4
+              },
+              {
+                "identifier": {
+                  "name": "v",
+                  "span": {
+                    "lo": 66,
+                    "hi": 67
+                  },
+                  "id": 5
+                },
+                "mode": "None",
+                "type_": {
+                  "Composite": {
+                    "path": {
+                      "qualifier": [],
+                      "identifier": {
+                        "name": "value",
+                        "span": {
+                          "lo": 69,
+                          "hi": 74
+                        },
+                        "id": 6
+                      },
+                      "absolute_path": null,
+                      "span": {
+                        "lo": 69,
+                        "hi": 74
+                      },
+                      "id": 7
+                    },
+                    "const_arguments": [],
+                    "program": null
+                  }
+                },
+                "span": {
+                  "lo": 66,
+                  "hi": 74
+                },
+                "id": 8
+              }
+            ],
+            "output": [],
+            "output_type": "Unit",
+            "block": {
+              "statements": [
+                {
+                  "Definition": {
+                    "place": {
+                      "Single": {
+                        "name": "a",
+                        "span": {
+                          "lo": 90,
+                          "hi": 91
+                        },
+                        "id": 10
+                      }
+                    },
+                    "type_": "Boolean",
+                    "value": {
+                      "AssociatedFunction": {
+                        "variant": {
+                          "name": "signature",
+                          "span": {
+                            "lo": 100,
+                            "hi": 109
+                          },
+                          "id": 12
+                        },
+                        "name": {
+                          "name": "verify",
+                          "span": {
+                            "lo": 111,
+                            "hi": 117
+                          },
+                          "id": 13
+                        },
+                        "arguments": [
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "s",
+                                "span": {
+                                  "lo": 118,
+                                  "hi": 119
+                                },
+                                "id": 15
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 118,
+                                "hi": 119
+                              },
+                              "id": 14
+                            }
+                          },
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "a",
+                                "span": {
+                                  "lo": 121,
+                                  "hi": 122
+                                },
+                                "id": 17
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 121,
+                                "hi": 122
+                              },
+                              "id": 16
+                            }
+                          },
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "v",
+                                "span": {
+                                  "lo": 124,
+                                  "hi": 125
+                                },
+                                "id": 19
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 124,
+                                "hi": 125
+                              },
+                              "id": 18
+                            }
+                          }
+                        ],
+                        "span": {
+                          "lo": 100,
+                          "hi": 126
+                        },
+                        "id": 11
+                      }
+                    },
+                    "span": {
+                      "lo": 86,
+                      "hi": 127
+                    },
+                    "id": 9
+                  }
+                },
+                {
+                  "Definition": {
+                    "place": {
+                      "Single": {
+                        "name": "b",
+                        "span": {
+                          "lo": 140,
+                          "hi": 141
+                        },
+                        "id": 21
+                      }
+                    },
+                    "type_": "Boolean",
+                    "value": {
+                      "AssociatedFunction": {
+                        "variant": {
+                          "name": "signature",
+                          "span": {
+                            "lo": 0,
+                            "hi": 0
+                          },
+                          "id": 30
+                        },
+                        "name": {
+                          "name": "verify",
+                          "span": {
+                            "lo": 152,
+                            "hi": 158
+                          },
+                          "id": 23
+                        },
+                        "arguments": [
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "s",
+                                "span": {
+                                  "lo": 150,
+                                  "hi": 151
+                                },
+                                "id": 25
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 150,
+                                "hi": 151
+                              },
+                              "id": 24
+                            }
+                          },
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "a",
+                                "span": {
+                                  "lo": 159,
+                                  "hi": 160
+                                },
+                                "id": 27
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 159,
+                                "hi": 160
+                              },
+                              "id": 26
+                            }
+                          },
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "v",
+                                "span": {
+                                  "lo": 162,
+                                  "hi": 163
+                                },
+                                "id": 29
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 162,
+                                "hi": 163
+                              },
+                              "id": 28
+                            }
+                          }
+                        ],
+                        "span": {
+                          "lo": 150,
+                          "hi": 164
+                        },
+                        "id": 22
+                      }
+                    },
+                    "span": {
+                      "lo": 136,
+                      "hi": 165
+                    },
+                    "id": 20
+                  }
+                },
+                {
+                  "Assert": {
+                    "variant": {
+                      "AssertEq": [
+                        {
+                          "Path": {
+                            "qualifier": [],
+                            "identifier": {
+                              "name": "a",
+                              "span": {
+                                "lo": 184,
+                                "hi": 185
+                              },
+                              "id": 33
+                            },
+                            "absolute_path": null,
+                            "span": {
+                              "lo": 184,
+                              "hi": 185
+                            },
+                            "id": 32
+                          }
+                        },
+                        {
+                          "Path": {
+                            "qualifier": [],
+                            "identifier": {
+                              "name": "b",
+                              "span": {
+                                "lo": 187,
+                                "hi": 188
+                              },
+                              "id": 35
+                            },
+                            "absolute_path": null,
+                            "span": {
+                              "lo": 187,
+                              "hi": 188
+                            },
+                            "id": 34
+                          }
+                        }
+                      ]
+                    },
+                    "span": {
+                      "lo": 174,
+                      "hi": 190
+                    },
+                    "id": 31
+                  }
+                }
+              ],
+              "span": {
+                "lo": 76,
+                "hi": 196
+              },
+              "id": 36
+            },
+            "span": {
+              "lo": 25,
+              "hi": 196
+            },
+            "id": 37
+          }
+        ],
+        [
+          "bar",
+          {
+            "annotations": [],
+            "variant": "Transition",
+            "identifier": {
+              "name": "bar",
+              "span": {
+                "lo": 213,
+                "hi": 216
+              },
+              "id": 38
+            },
+            "const_parameters": [],
+            "input": [
+              {
+                "identifier": {
+                  "name": "x",
+                  "span": {
+                    "lo": 217,
+                    "hi": 218
+                  },
+                  "id": 39
+                },
+                "mode": "None",
+                "type_": {
+                  "Integer": "U8"
+                },
+                "span": {
+                  "lo": 217,
+                  "hi": 222
+                },
+                "id": 40
+              }
+            ],
+            "output": [
+              {
+                "mode": "None",
+                "type_": {
+                  "Integer": "U8"
+                },
+                "span": {
+                  "lo": 227,
+                  "hi": 229
+                },
+                "id": 51
+              }
+            ],
+            "output_type": {
+              "Integer": "U8"
+            },
+            "block": {
+              "statements": [
+                {
+                  "Definition": {
+                    "place": {
+                      "Single": {
+                        "name": "signature_",
+                        "span": {
+                          "lo": 244,
+                          "hi": 254
+                        },
+                        "id": 42
+                      }
+                    },
+                    "type_": {
+                      "Integer": "U8"
+                    },
+                    "value": {
+                      "Binary": {
+                        "left": {
+                          "Literal": {
+                            "span": {
+                              "lo": 261,
+                              "hi": 264
+                            },
+                            "id": 44,
+                            "variant": {
+                              "Integer": [
+                                "U8",
+                                "1"
+                              ]
+                            }
+                          }
+                        },
+                        "right": {
+                          "Path": {
+                            "qualifier": [],
+                            "identifier": {
+                              "name": "x",
+                              "span": {
+                                "lo": 267,
+                                "hi": 268
+                              },
+                              "id": 46
+                            },
+                            "absolute_path": null,
+                            "span": {
+                              "lo": 267,
+                              "hi": 268
+                            },
+                            "id": 45
+                          }
+                        },
+                        "op": "Add",
+                        "span": {
+                          "lo": 261,
+                          "hi": 268
+                        },
+                        "id": 43
+                      }
+                    },
+                    "span": {
+                      "lo": 240,
+                      "hi": 269
+                    },
+                    "id": 41
+                  }
+                },
+                {
+                  "Return": {
+                    "expression": {
+                      "Path": {
+                        "qualifier": [],
+                        "identifier": {
+                          "name": "signature_",
+                          "span": {
+                            "lo": 285,
+                            "hi": 295
+                          },
+                          "id": 49
+                        },
+                        "absolute_path": null,
+                        "span": {
+                          "lo": 285,
+                          "hi": 295
+                        },
+                        "id": 48
+                      }
+                    },
+                    "span": {
+                      "lo": 278,
+                      "hi": 296
+                    },
+                    "id": 47
+                  }
+                }
+              ],
+              "span": {
+                "lo": 230,
+                "hi": 302
+              },
+              "id": 50
+            },
+            "span": {
+              "lo": 202,
+              "hi": 302
+            },
+            "id": 52
+          }
+        ],
+        [
+          "bax",
+          {
+            "annotations": [],
+            "variant": "Transition",
+            "identifier": {
+              "name": "bax",
+              "span": {
+                "lo": 318,
+                "hi": 321
+              },
+              "id": 53
+            },
+            "const_parameters": [],
+            "input": [
+              {
+                "identifier": {
+                  "name": "s",
+                  "span": {
+                    "lo": 322,
+                    "hi": 323
+                  },
+                  "id": 54
+                },
+                "mode": "None",
+                "type_": "Signature",
+                "span": {
+                  "lo": 322,
+                  "hi": 334
+                },
+                "id": 55
+              },
+              {
+                "identifier": {
+                  "name": "a",
+                  "span": {
+                    "lo": 336,
+                    "hi": 337
+                  },
+                  "id": 56
+                },
+                "mode": "None",
+                "type_": "Address",
+                "span": {
+                  "lo": 336,
+                  "hi": 346
+                },
+                "id": 57
+              },
+              {
+                "identifier": {
+                  "name": "v",
+                  "span": {
+                    "lo": 348,
+                    "hi": 349
+                  },
+                  "id": 58
+                },
+                "mode": "None",
+                "type_": {
+                  "Composite": {
+                    "path": {
+                      "qualifier": [],
+                      "identifier": {
+                        "name": "value",
+                        "span": {
+                          "lo": 351,
+                          "hi": 356
+                        },
+                        "id": 59
+                      },
+                      "absolute_path": null,
+                      "span": {
+                        "lo": 351,
+                        "hi": 356
+                      },
+                      "id": 60
+                    },
+                    "const_arguments": [],
+                    "program": null
+                  }
+                },
+                "span": {
+                  "lo": 348,
+                  "hi": 356
+                },
+                "id": 61
+              }
+            ],
+            "output": [],
+            "output_type": "Unit",
+            "block": {
+              "statements": [
+                {
+                  "Definition": {
+                    "place": {
+                      "Single": {
+                        "name": "a",
+                        "span": {
+                          "lo": 371,
+                          "hi": 372
+                        },
+                        "id": 63
+                      }
+                    },
+                    "type_": "Boolean",
+                    "value": {
+                      "AssociatedFunction": {
+                        "variant": {
+                          "name": "signature",
+                          "span": {
+                            "lo": 381,
+                            "hi": 390
+                          },
+                          "id": 65
+                        },
+                        "name": {
+                          "name": "sign",
+                          "span": {
+                            "lo": 392,
+                            "hi": 396
+                          },
+                          "id": 66
+                        },
+                        "arguments": [
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "s",
+                                "span": {
+                                  "lo": 397,
+                                  "hi": 398
+                                },
+                                "id": 68
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 397,
+                                "hi": 398
+                              },
+                              "id": 67
+                            }
+                          },
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "a",
+                                "span": {
+                                  "lo": 400,
+                                  "hi": 401
+                                },
+                                "id": 70
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 400,
+                                "hi": 401
+                              },
+                              "id": 69
+                            }
+                          },
+                          {
+                            "Path": {
+                              "qualifier": [],
+                              "identifier": {
+                                "name": "v",
+                                "span": {
+                                  "lo": 403,
+                                  "hi": 404
+                                },
+                                "id": 72
+                              },
+                              "absolute_path": null,
+                              "span": {
+                                "lo": 403,
+                                "hi": 404
+                              },
+                              "id": 71
+                            }
+                          }
+                        ],
+                        "span": {
+                          "lo": 381,
+                          "hi": 405
+                        },
+                        "id": 64
+                      }
+                    },
+                    "span": {
+                      "lo": 367,
+                      "hi": 406
+                    },
+                    "id": 62
+                  }
+                },
+                {
+                  "Assert": {
+                    "variant": {
+                      "AssertEq": [
+                        {
+                          "Path": {
+                            "qualifier": [],
+                            "identifier": {
+                              "name": "a",
+                              "span": {
+                                "lo": 424,
+                                "hi": 425
+                              },
+                              "id": 75
+                            },
+                            "absolute_path": null,
+                            "span": {
+                              "lo": 424,
+                              "hi": 425
+                            },
+                            "id": 74
+                          }
+                        },
+                        {
+                          "Path": {
+                            "qualifier": [],
+                            "identifier": {
+                              "name": "b",
+                              "span": {
+                                "lo": 427,
+                                "hi": 428
+                              },
+                              "id": 77
+                            },
+                            "absolute_path": null,
+                            "span": {
+                              "lo": 427,
+                              "hi": 428
+                            },
+                            "id": 76
+                          }
+                        }
+                      ]
+                    },
+                    "span": {
+                      "lo": 414,
+                      "hi": 430
+                    },
+                    "id": 73
+                  }
+                }
+              ],
+              "span": {
+                "lo": 358,
+                "hi": 435
+              },
+              "id": 78
+            },
+            "span": {
+              "lo": 307,
+              "hi": 435
+            },
+            "id": 79
+          }
+        ]
+      ],
+      "constructor": null,
+      "span": {
+        "lo": 0,
+        "hi": 437
+      }
+    }
+  }
+}

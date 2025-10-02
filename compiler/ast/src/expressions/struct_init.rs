@@ -15,7 +15,7 @@
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
 use super::*;
-use leo_span::sym;
+use crate::Identifier;
 
 use itertools::Itertools as _;
 
@@ -49,8 +49,10 @@ impl fmt::Display for StructVariableInitializer {
 /// A struct initialization expression, e.g., `Foo { bar: 42, baz }`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StructExpression {
-    /// The name of the structure type to initialize.
-    pub name: Identifier,
+    /// A path to a structure type to initialize.
+    pub path: Path,
+    /// Expressions for the const arguments passed to the struct's const parameters.
+    pub const_arguments: Vec<Expression>,
     /// Initializer expressions for each of the fields in the struct.
     ///
     /// N.B. Any functions or member constants in the struct definition
@@ -62,37 +64,14 @@ pub struct StructExpression {
     pub id: NodeID,
 }
 
-impl StructExpression {
-    /// Returns true if the record has all required fields and visibility.
-    pub fn check_record(&self) -> bool {
-        let has_member = |symbol| self.members.iter().any(|variable| variable.identifier.name == symbol);
-
-        has_member(sym::owner) && has_member(sym::_nonce)
-    }
-
-    /// Returns the struct as a record interface with visibility.
-    pub fn to_record_string(&self) -> String {
-        format!(
-            "{{{}}}",
-            self.members
-                .iter()
-                .map(|variable| {
-                    // Write default visibility.
-                    if variable.identifier.name == sym::_nonce {
-                        format!("{variable}.public")
-                    } else {
-                        format!("{variable}.private")
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    }
-}
-
 impl fmt::Display for StructExpression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {{", self.name)?;
+        write!(f, "{}", self.path)?;
+        if !self.const_arguments.is_empty() {
+            write!(f, "::[{}]", self.const_arguments.iter().format(", "))?;
+        }
+        write!(f, " {{")?;
+
         if !self.members.is_empty() {
             write!(f, " ")?;
         }
@@ -101,6 +80,12 @@ impl fmt::Display for StructExpression {
             write!(f, " ")?;
         }
         write!(f, "}}")
+    }
+}
+
+impl From<StructExpression> for Expression {
+    fn from(value: StructExpression) -> Self {
+        Expression::Struct(value)
     }
 }
 

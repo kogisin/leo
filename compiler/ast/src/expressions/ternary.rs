@@ -20,11 +20,11 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TernaryExpression {
     /// The condition determining which branch to pick.
-    pub condition: Box<Expression>,
+    pub condition: Expression,
     /// The branch the expression evaluates to if `condition` evaluates to true.
-    pub if_true: Box<Expression>,
+    pub if_true: Expression,
     /// The branch the expression evaluates to if `condition` evaluates to false.
-    pub if_false: Box<Expression>,
+    pub if_false: Expression,
     /// The span from `condition` to `if_false`.
     pub span: Span,
     /// The ID of the node.
@@ -33,21 +33,21 @@ pub struct TernaryExpression {
 
 impl fmt::Display for TernaryExpression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.condition.precedence() > 14 {
-            write!(f, "{}", self.condition)?;
-        } else {
-            write!(f, "({})", self.condition)?;
-        }
+        let maybe_paren = |f: &mut fmt::Formatter, expr: &Expression| {
+            if expr.precedence() > 0 { write!(f, "{expr}") } else { write!(f, "({expr})") }
+        };
 
-        write!(f, " ? {} : ", self.if_true)?;
+        maybe_paren(f, &self.condition)?;
+        write!(f, " ? ")?;
+        maybe_paren(f, &self.if_true)?;
+        write!(f, " : ")?;
+        maybe_paren(f, &self.if_false)
+    }
+}
 
-        if self.if_false.precedence() > 14 {
-            write!(f, "{}", self.if_false)?;
-        } else {
-            write!(f, "({})", self.if_false)?;
-        }
-
-        Ok(())
+impl From<TernaryExpression> for Expression {
+    fn from(value: TernaryExpression) -> Self {
+        Expression::Ternary(Box::new(value))
     }
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "leo-errors"
-version = "2.4.1"
+version = "3.2.0"
 authors = [ "The Leo Team <leo@provable.com>" ]
 description = "Errors for the Leo programming language"
 homepage = "https://leo-lang.org"
@@ -15,8 +15,8 @@ keywords = [
 categories = [ "compilers", "cryptography", "web-programming" ]
 include = [ "Cargo.toml", "src", "README.md", "LICENSE.md" ]
 license = "GPL-3.0"
-edition = "2021"
-rust-version = "1.82.0"
+edition = "2024"
+rust-version = "1.88.0"
 
 [dependencies.leo-span]
 workspace = true
@@ -36,8 +36,8 @@ version = "0.6.1"
 [dependencies.derivative]
 version = "2.2.0"
 
-[dependencies.reqwest]
-version = "0.12.9"
+[dependencies.itertools]
+workspace = true
 
 [dependencies.serde]
 workspace = true

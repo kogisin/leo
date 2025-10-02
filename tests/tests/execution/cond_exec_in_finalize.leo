@@ -1,15 +1,16 @@
 /*
-namespace = "Execute"
-expectation = "Pass"
-[[cases]]
+seed = 123456789
+min_height = 16
+
+[case]
 program = "cond_exec_in_finalize.aleo"
 function = "f"
 input = ["1u64", "0u64"]
-[[cases]]
+[case]
 program = "cond_exec_in_finalize.aleo"
 function = "f"
 input = ["1u64", "1u64"]
-[[cases]]
+[case]
 program = "cond_exec_in_finalize.aleo"
 function = "f"
 input = ["1u64", "2u64"]
@@ -29,4 +30,7 @@ program cond_exec_in_finalize.aleo {
       assert_eq(a / b, 1u64);
     }
   }
+
+  @noupgrade
+  async constructor() {}
 }

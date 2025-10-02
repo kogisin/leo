@@ -25,24 +25,40 @@ pub trait ExpressionConsumer {
 
     fn consume_expression(&mut self, input: Expression) -> Self::Output {
         match input {
-            Expression::Access(access) => self.consume_access(access),
             Expression::Array(array) => self.consume_array(array),
-            Expression::Binary(binary) => self.consume_binary(binary),
-            Expression::Call(call) => self.consume_call(call),
-            Expression::Cast(cast) => self.consume_cast(cast),
+            Expression::ArrayAccess(access) => self.consume_array_access(*access),
+            Expression::AssociatedConstant(constant) => self.consume_associated_constant(constant),
+            Expression::AssociatedFunction(function) => self.consume_associated_function(function),
+            Expression::Async(async_) => self.consume_async(async_),
+            Expression::Binary(binary) => self.consume_binary(*binary),
+            Expression::Call(call) => self.consume_call(*call),
+            Expression::Cast(cast) => self.consume_cast(*cast),
             Expression::Struct(struct_) => self.consume_struct_init(struct_),
             Expression::Err(err) => self.consume_err(err),
-            Expression::Identifier(identifier) => self.consume_identifier(identifier),
+            Expression::Path(path) => self.consume_path(path),
             Expression::Literal(value) => self.consume_literal(value),
             Expression::Locator(locator) => self.consume_locator(locator),
-            Expression::Ternary(ternary) => self.consume_ternary(ternary),
+            Expression::MemberAccess(access) => self.consume_member_access(*access),
+            Expression::Repeat(repeat) => self.consume_repeat(*repeat),
+            Expression::Ternary(ternary) => self.consume_ternary(*ternary),
             Expression::Tuple(tuple) => self.consume_tuple(tuple),
-            Expression::Unary(unary) => self.consume_unary(unary),
+            Expression::TupleAccess(access) => self.consume_tuple_access(*access),
+            Expression::Unary(unary) => self.consume_unary(*unary),
             Expression::Unit(unit) => self.consume_unit(unit),
         }
     }
 
-    fn consume_access(&mut self, _input: AccessExpression) -> Self::Output;
+    fn consume_array_access(&mut self, _input: ArrayAccess) -> Self::Output;
+
+    fn consume_member_access(&mut self, _input: MemberAccess) -> Self::Output;
+
+    fn consume_tuple_access(&mut self, _input: TupleAccess) -> Self::Output;
+
+    fn consume_associated_constant(&mut self, _input: AssociatedConstantExpression) -> Self::Output;
+
+    fn consume_associated_function(&mut self, _input: AssociatedFunctionExpression) -> Self::Output;
+
+    fn consume_async(&mut self, _input: AsyncExpression) -> Self::Output;
 
     fn consume_array(&mut self, _input: ArrayExpression) -> Self::Output;
 
@@ -55,14 +71,16 @@ pub trait ExpressionConsumer {
     fn consume_struct_init(&mut self, _input: StructExpression) -> Self::Output;
 
     fn consume_err(&mut self, _input: ErrExpression) -> Self::Output {
-        unreachable!("`ErrExpression`s should not be in the AST at this phase of compilation.")
+        panic!("`ErrExpression`s should not be in the AST at this phase of compilation.")
     }
 
-    fn consume_identifier(&mut self, _input: Identifier) -> Self::Output;
+    fn consume_path(&mut self, _input: Path) -> Self::Output;
 
     fn consume_literal(&mut self, _input: Literal) -> Self::Output;
 
     fn consume_locator(&mut self, _input: LocatorExpression) -> Self::Output;
+
+    fn consume_repeat(&mut self, _input: RepeatExpression) -> Self::Output;
 
     fn consume_ternary(&mut self, _input: TernaryExpression) -> Self::Output;
 
@@ -83,7 +101,6 @@ pub trait StatementConsumer {
             Statement::Assign(stmt) => self.consume_assign(*stmt),
             Statement::Block(stmt) => self.consume_block(stmt),
             Statement::Conditional(stmt) => self.consume_conditional(stmt),
-            Statement::Console(stmt) => self.consume_console(stmt),
             Statement::Const(stmt) => self.consume_const(stmt),
             Statement::Definition(stmt) => self.consume_definition(stmt),
             Statement::Expression(stmt) => self.consume_expression_statement(stmt),
@@ -99,8 +116,6 @@ pub trait StatementConsumer {
     fn consume_block(&mut self, input: Block) -> Self::Output;
 
     fn consume_conditional(&mut self, input: ConditionalStatement) -> Self::Output;
-
-    fn consume_console(&mut self, input: ConsoleStatement) -> Self::Output;
 
     fn consume_const(&mut self, input: ConstDeclaration) -> Self::Output;
 
@@ -118,6 +133,13 @@ pub trait FunctionConsumer {
     type Output;
 
     fn consume_function(&mut self, input: Function) -> Self::Output;
+}
+
+/// A Consumer trait for constructors in the AST.
+pub trait ConstructorConsumer {
+    type Output;
+
+    fn consume_constructor(&mut self, input: Constructor) -> Self::Output;
 }
 
 /// A Consumer trait for structs in the AST.
@@ -152,4 +174,10 @@ pub trait ProgramScopeConsumer {
 pub trait ProgramConsumer {
     type Output;
     fn consume_program(&mut self, input: Program) -> Self::Output;
+}
+
+/// A Consumer trait for modules in the AST.
+pub trait ModuleConsumer {
+    type Output;
+    fn consume_module(&mut self, input: Module) -> Self::Output;
 }

@@ -14,37 +14,34 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-pub mod assert;
+mod assert;
 pub use assert::*;
 
-pub mod assign;
+mod assign;
 pub use assign::*;
 
-pub mod block;
+mod block;
 pub use block::*;
 
-pub mod conditional;
+mod conditional;
 pub use conditional::*;
 
-pub mod console;
-pub use console::*;
-
-pub mod const_;
+mod const_;
 pub use const_::*;
 
-pub mod definition;
+mod definition;
 pub use definition::*;
 
-pub mod expression;
+mod expression;
 pub use expression::*;
 
-pub mod iteration;
+mod iteration;
 pub use iteration::*;
 
-pub mod return_;
+mod return_;
 pub use return_::*;
 
-use crate::{Node, NodeID};
+use crate::{Expression, Node, NodeID};
 
 use leo_span::Span;
 
@@ -62,8 +59,6 @@ pub enum Statement {
     Block(Block),
     /// An `if` statement.
     Conditional(ConditionalStatement),
-    /// A console logging statement.
-    Console(ConsoleStatement),
     /// A binding from identifier to constant value.
     Const(ConstDeclaration),
     /// A binding or set of bindings / variables to declare.
@@ -78,14 +73,22 @@ pub enum Statement {
 
 impl Statement {
     /// Returns a dummy statement made from an empty block `{}`.
-    pub fn dummy(span: Span, id: NodeID) -> Self {
-        Self::Block(Block { statements: Vec::new(), span, id })
+    pub fn dummy() -> Self {
+        Block { statements: Vec::new(), span: Default::default(), id: Default::default() }.into()
     }
 
     pub(crate) fn semicolon(&self) -> &'static str {
         use Statement::*;
 
         if matches!(self, Block(..) | Conditional(..) | Iteration(..)) { "" } else { ";" }
+    }
+
+    pub fn is_empty(self: &Statement) -> bool {
+        match self {
+            Statement::Block(block) => block.statements.is_empty(),
+            Statement::Return(return_) => matches!(return_.expression, Expression::Unit(_)),
+            _ => false,
+        }
     }
 }
 
@@ -96,7 +99,6 @@ impl fmt::Display for Statement {
             Statement::Assign(x) => x.fmt(f),
             Statement::Block(x) => x.fmt(f),
             Statement::Conditional(x) => x.fmt(f),
-            Statement::Console(x) => x.fmt(f),
             Statement::Const(x) => x.fmt(f),
             Statement::Definition(x) => x.fmt(f),
             Statement::Expression(x) => x.fmt(f),
@@ -114,7 +116,6 @@ impl Node for Statement {
             Assign(n) => n.span(),
             Block(n) => n.span(),
             Conditional(n) => n.span(),
-            Console(n) => n.span(),
             Const(n) => n.span(),
             Definition(n) => n.span(),
             Expression(n) => n.span(),
@@ -130,7 +131,6 @@ impl Node for Statement {
             Assign(n) => n.set_span(span),
             Block(n) => n.set_span(span),
             Conditional(n) => n.set_span(span),
-            Console(n) => n.set_span(span),
             Const(n) => n.set_span(span),
             Definition(n) => n.set_span(span),
             Expression(n) => n.set_span(span),
@@ -146,7 +146,6 @@ impl Node for Statement {
             Assign(n) => n.id(),
             Block(n) => n.id(),
             Conditional(n) => n.id(),
-            Console(n) => n.id(),
             Const(n) => n.id(),
             Definition(n) => n.id(),
             Expression(n) => n.id(),
@@ -162,7 +161,6 @@ impl Node for Statement {
             Assign(n) => n.set_id(id),
             Block(n) => n.set_id(id),
             Conditional(n) => n.set_id(id),
-            Console(n) => n.set_id(id),
             Const(n) => n.set_id(id),
             Definition(n) => n.set_id(id),
             Expression(n) => n.set_id(id),

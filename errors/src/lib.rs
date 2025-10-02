@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
+#![recursion_limit = "256"]
 #![forbid(unsafe_code)]
-#![deny(clippy::all)]
 #![doc = include_str!("../README.md")]
 
 #[macro_use]
@@ -23,12 +23,13 @@ extern crate thiserror;
 
 /// Contains the common functionalities for defining errors.
 #[macro_use]
-pub mod common;
+mod common;
 pub use self::common::*;
 
 /// Contains traits and types for channels through which errors go.
-pub mod emitter;
+mod emitter;
+pub use emitter::*;
 
 /// Contains the errors and warnings for the Leo language.
-pub mod errors;
+mod errors;
 pub use self::errors::*;

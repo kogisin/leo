@@ -1,11 +1,4 @@
-namespace = "Compile"
-expectation = "Pass"
-outputs = [[{ compile = [{ initial_ast = "f6fdd3e73a3226c11749276f1c9f520ec00180b840734423988be1d895516676", unrolled_ast = "c0ee8670692cd0838ec10c86576236802db0dbaf9982c30bf00231b590fd1385", ssa_ast = "6e49848a61b0fa50003e861e6c112c8f446d36d4981fa551fd7013dcb389ec32", flattened_ast = "9b55a3f2a73e6aed7387c9adf08bce7ca628c42a51a7a79e34b692f760eca9c3", destructured_ast = "e810dd9bc887d548b1a018747aaf53bb6980bc2e3f12342cb8e5d4b78f91266c", inlined_ast = "e810dd9bc887d548b1a018747aaf53bb6980bc2e3f12342cb8e5d4b78f91266c", dce_ast = "9bbffc19df198c743ca1af6e868d3664ef523d4895e56b64475ccc2325fe11ba", bytecode = """
 program test.aleo;
-
-struct Foo:
-    a as u128;
-    b as u128;
 
 function main:
     input r0 as i8.private;
@@ -17,7 +10,33 @@ function main:
     input r6 as u32.private;
     input r7 as u64.private;
     hash.keccak512 aleo10qerras5799u6k7rjtc9y3hcwxuykr45qra7x7dp6jgnc0923czqm0lgta into r8 as field;
-    hash.keccak512 1scalar into r9 as field;
-    add r8 r9 into r10;
+    hash.keccak512 true into r9 as field;
+    hash.keccak512 1field into r10 as field;
+    hash.keccak512 1540945439182663264862696551825005342995406165131907382295858612069623286213group into r11 as field;
+    hash.keccak512 r0 into r12 as field;
+    hash.keccak512 r1 into r13 as field;
+    hash.keccak512 r2 into r14 as field;
+    hash.keccak512 r3 into r15 as field;
+    hash.keccak512 1i128 into r16 as field;
+    hash.keccak512 r4 into r17 as field;
+    hash.keccak512 r5 into r18 as field;
+    hash.keccak512 r6 into r19 as field;
+    hash.keccak512 r7 into r20 as field;
+    hash.keccak512 1u128 into r21 as field;
+    hash.keccak512 1scalar into r22 as field;
+    output r8 as field.private;
+    output r9 as field.private;
     output r10 as field.private;
-""", errors = "", warnings = "" }] }]]
+    output r11 as field.private;
+    output r12 as field.private;
+    output r13 as field.private;
+    output r14 as field.private;
+    output r15 as field.private;
+    output r16 as field.private;
+    output r17 as field.private;
+    output r18 as field.private;
+    output r19 as field.private;
+    output r20 as field.private;
+    output r21 as field.private;
+    output r22 as field.private;
+    output 817237025924671122424296148780239365284812115566271403963503097944024161941field as field.private;

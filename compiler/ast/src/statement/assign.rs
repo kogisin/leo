@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Expression, Node, NodeID};
+use crate::{Expression, Node, NodeID, Statement};
 use leo_span::Span;
 
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,6 @@ use std::fmt;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct AssignStatement {
     /// The place to assign to.
-    /// Note that `place` can either be an identifier or tuple.
     pub place: Expression,
     /// The value to assign to the `assignee`.
     pub value: Expression,
@@ -38,6 +37,12 @@ pub struct AssignStatement {
 impl fmt::Display for AssignStatement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} = {}", self.place, self.value)
+    }
+}
+
+impl From<AssignStatement> for Statement {
+    fn from(value: AssignStatement) -> Self {
+        Statement::Assign(Box::new(value))
     }
 }
 

@@ -14,33 +14,42 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
+mod await_checker;
+use self::await_checker::AwaitChecker;
+
 mod future_checker;
 
-mod await_checker;
+mod program;
 
-pub mod analyze_expression;
+mod visitor;
+use visitor::*;
 
-pub mod analyze_program;
+use crate::Pass;
 
-pub mod analyze_statement;
+use leo_ast::ProgramVisitor;
+use leo_errors::Result;
+use leo_span::Symbol;
 
-pub mod analyzer;
-pub use analyzer::*;
+pub struct StaticAnalyzing;
 
-use crate::{Pass, SymbolTable, TypeTable};
+impl Pass for StaticAnalyzing {
+    type Input = ();
+    type Output = ();
 
-use leo_ast::{Ast, ProgramVisitor};
-use leo_errors::{Result, emitter::Handler};
+    const NAME: &str = "StaticAnalyzing";
 
-use snarkvm::prelude::Network;
-
-impl<'a, N: Network> Pass for StaticAnalyzer<'a, N> {
-    type Input = (&'a Ast, &'a Handler, &'a SymbolTable, &'a TypeTable, usize, bool);
-    type Output = Result<()>;
-
-    fn do_pass((ast, handler, symbol_table, tt, max_depth, await_checking): Self::Input) -> Self::Output {
-        let mut visitor = StaticAnalyzer::<N>::new(symbol_table, tt, handler, max_depth, await_checking);
+    fn do_pass(_input: Self::Input, state: &mut crate::CompilerState) -> Result<Self::Output> {
+        let ast = std::mem::take(&mut state.ast);
+        let mut visitor = StaticAnalyzingVisitor {
+            state,
+            await_checker: AwaitChecker::new(),
+            current_program: Symbol::intern(""),
+            variant: None,
+            non_async_external_call_seen: false,
+        };
         visitor.visit_program(ast.as_repr());
-        handler.last_err().map_err(|e| *e)
+        visitor.state.handler.last_err()?;
+        visitor.state.ast = ast;
+        Ok(())
     }
 }

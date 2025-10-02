@@ -1,9 +1,4 @@
 
-/*
-namespace = "Compile"
-expectation = "Pass"
-*/
-
 program test.aleo {
     mapping map: u32 => u32;
 

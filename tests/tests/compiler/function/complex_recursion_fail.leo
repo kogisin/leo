@@ -1,10 +1,4 @@
 
-/*
-namespace = "Compile"
-expectation = "Fail"
-*/
-
-
 program test.aleo {
 
     function one(n: u8) -> u8 {

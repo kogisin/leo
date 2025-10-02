@@ -22,45 +22,46 @@
 
 #![allow(ambiguous_glob_reexports)]
 
-pub mod access;
-pub use self::access::*;
-
-pub mod r#struct;
+mod r#struct;
 pub use self::r#struct::*;
 
 pub mod common;
 pub use self::common::*;
 
-pub mod expressions;
+pub mod constructor;
+pub use self::constructor::*;
+
+mod expressions;
 pub use self::expressions::*;
 
-pub mod functions;
+mod functions;
 pub use self::functions::*;
 
 mod indent_display;
 use indent_display::*;
 
-pub mod mapping;
+pub mod interpreter_value;
+
+mod mapping;
 pub use self::mapping::*;
 
-pub mod passes;
+mod module;
+pub use self::module::*;
+
+mod passes;
 pub use self::passes::*;
 
-pub mod program;
+mod program;
 pub use self::program::*;
 
-pub mod statement;
+mod statement;
 pub use self::statement::*;
 
-pub mod types;
+mod types;
 pub use self::types::*;
 
-pub mod value;
-
-pub mod stub;
+mod stub;
 pub use self::stub::*;
-
-pub use self::value::*;
 
 pub use common::node::*;
 
@@ -170,7 +171,7 @@ pub fn remove_key_from_json(value: serde_json::Value, key: &str) -> serde_json::
 /// one under the following rules:
 /// 1. Remove empty object mappings from JSON arrays
 /// 2. If there are two elements in a JSON array and one is an empty object
-///     mapping and the other is not, then lift up the one that isn't
+///    mapping and the other is not, then lift up the one that isn't
 pub fn normalize_json_value(value: serde_json::Value) -> serde_json::Value {
     match value {
         serde_json::Value::Array(vec) => {

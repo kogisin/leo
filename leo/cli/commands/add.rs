@@ -15,7 +15,7 @@
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
 use super::*;
-use leo_retriever::{Dependency, Location, Manifest, NetworkName};
+use leo_package::{Dependency, Location, Manifest};
 use std::path::PathBuf;
 
 /// Add a new on-chain or local dependency to the current package.
@@ -25,14 +25,38 @@ pub struct LeoAdd {
     #[clap(name = "NAME", help = "The dependency name. Ex: `credits.aleo` or `credits`.")]
     pub(crate) name: String,
 
-    #[clap(short = 'l', long, help = "Path to local dependency")]
+    #[clap(flatten)]
+    pub(crate) source: DependencySource,
+
+    #[clap(
+        short = 'c',
+        long,
+        hide = true,
+        help = "[UNUSED] Clear all previous dependencies.",
+        default_value = "false"
+    )]
+    pub(crate) clear: bool,
+
+    #[clap(long, help = "This is a development dependency.", default_value = "false")]
+    pub(crate) dev: bool,
+}
+
+#[derive(Parser, Debug)]
+#[group(required = true, multiple = false)]
+pub struct DependencySource {
+    #[clap(short = 'l', long, help = "Whether the dependency is local to the machine.", group = "source")]
     pub(crate) local: Option<PathBuf>,
 
-    #[clap(short = 'n', long, help = "Name of the network to use", default_value = "testnet")]
-    pub(crate) network: String,
+    #[clap(short = 'n', long, help = "Whether the dependency is on a live network.", group = "source")]
+    pub(crate) network: bool,
 
-    #[clap(short = 'c', long, help = "Clear all previous dependencies.", default_value = "false")]
-    pub(crate) clear: bool,
+    #[clap(
+        short = 'e',
+        long,
+        help = "The expected edition of the program. DO NOT USE THIS UNLESS YOU KNOW WHAT YOU ARE DOING.",
+        group = "source"
+    )]
+    pub(crate) edition: Option<u16>,
 }
 
 impl Command for LeoAdd {
@@ -50,80 +74,46 @@ impl Command for LeoAdd {
     fn apply(self, context: Context, _: Self::Input) -> Result<Self::Output> {
         let path = context.dir()?;
 
-        // Deserialize the manifest.
-        let program_data: String = std::fs::read_to_string(path.join("program.json"))
-            .map_err(|err| PackageError::failed_to_read_file(path.to_str().unwrap(), err))?;
-        let manifest: Manifest = serde_json::from_str(&program_data)
-            .map_err(|err| PackageError::failed_to_deserialize_manifest_file(path.to_str().unwrap(), err))?;
+        let manifest_path = path.join(leo_package::MANIFEST_FILENAME);
+        let mut manifest = Manifest::read_from_file(&manifest_path)?;
 
         // Make sure the program name is valid.
         // Allow both `credits.aleo` and `credits` syntax.
-        let name: String = match &self.name {
-            name if name.ends_with(".aleo") && Package::is_aleo_name_valid(&name[0..self.name.len() - 5]) => {
-                name.clone()
-            }
-            name if Package::is_aleo_name_valid(name) => format!("{name}.aleo"),
-            name => return Err(PackageError::invalid_file_name_dependency(name).into()),
+        let name = if self.name.ends_with(".aleo") { self.name.clone() } else { format!("{}.aleo", self.name) };
+
+        if !leo_package::is_valid_aleo_name(&name) {
+            return Err(CliError::invalid_program_name(name).into());
+        }
+
+        let new_dependency = Dependency {
+            name: name.clone(),
+            location: if self.source.local.is_some() { Location::Local } else { Location::Network },
+            path: self.source.local.clone(),
+            edition: self.source.edition,
         };
 
-        // Add dependency section to manifest if it doesn't exist.
-        let mut dependencies = match (self.clear, manifest.dependencies()) {
-            (false, Some(ref dependencies)) => dependencies
-                .iter()
-                .filter_map(|dependency| {
-                    // Overwrite old dependencies of the same name.
-                    if dependency.name() == &name {
-                        let msg = match (dependency.path(), dependency.network()) {
-                            (Some(local_path), _) => {
-                                format!("local dependency at path `{}`", local_path.to_str().unwrap().replace('\"', ""))
-                            }
-                            (_, Some(network)) => {
-                                format!("network dependency from `{}`", network)
-                            }
-                            _ => "git dependency".to_string(),
-                        };
-                        tracing::warn!("⚠️  Program `{name}` already exists as a {msg}. Overwriting.");
-                        None
-                    } else if self.local.is_some() && &self.local == dependency.path() {
-                        // Overwrite old dependencies at the same local path.
-                        tracing::warn!(
-                            "⚠️  Path `{}` already exists as the location for local dependency `{}`. Overwriting.",
-                            self.local.clone().unwrap().to_str().unwrap().replace('\"', ""),
-                            dependency.name()
-                        );
-                        None
-                    } else {
-                        Some(dependency.clone())
-                    }
-                })
-                .collect(),
-            _ => Vec::new(),
-        };
+        let deps = if self.dev { &mut manifest.dev_dependencies } else { &mut manifest.dependencies };
 
-        // Add new dependency to the manifest.
-        dependencies.push(match self.local {
-            Some(local_path) => {
-                tracing::info!(
-                    "✅ Added local dependency to program `{name}` at path `{}`.",
-                    local_path.to_str().unwrap().replace('\"', "")
+        if let Some(matched_dep) = deps.get_or_insert_default().iter_mut().find(|dep| dep.name == new_dependency.name) {
+            if let Some(path) = &matched_dep.path {
+                tracing::warn!(
+                    "⚠️ Program `{name}` already exists as a local dependency at `{}`. Overwriting.",
+                    path.display()
                 );
-                Dependency::new(name, Location::Local, None, Some(local_path))
+            } else {
+                tracing::warn!("⚠️ Program `{name}` already exists as a network dependency. Overwriting.");
             }
-            None => {
-                tracing::info!("✅ Added network dependency to program `{name}` from network `{}`.", self.network);
-                Dependency::new(name, Location::Network, Some(NetworkName::try_from(self.network.as_str())?), None)
+            *matched_dep = new_dependency;
+        } else {
+            deps.as_mut().unwrap().push(new_dependency);
+            if let Some(path) = self.source.local.as_ref() {
+                tracing::info!("✅ Added local dependency to program `{name}` at path `{}`.", path.display());
+            } else {
+                tracing::info!("✅ Added network dependency `{name}` from network `{}`.", self.source.network);
             }
-        });
+        }
 
-        // Update the manifest file.
-        let new_manifest = Manifest::new(
-            manifest.program(),
-            manifest.version(),
-            manifest.description(),
-            manifest.license(),
-            Some(dependencies),
-        );
-        new_manifest.write_to_dir(&path)?;
+        manifest.write_to_file(manifest_path)?;
 
         Ok(())
     }

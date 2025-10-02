@@ -1,23 +1,24 @@
 /*
-namespace = "Execute"
-expectation = "Pass"
-[[cases]]
+seed = 123456789
+min_height = 16
+
+[case]
 program = "test.aleo"
 function = "main"
 input = ["1u32"]
-[[cases]]
+[case]
 program = "test.aleo"
 function = "main"
 input = ["2u32"]
-[[cases]]
+[case]
 program = "test.aleo"
 function = "main"
 input = ["3u32"]
-[[cases]]
+[case]
 program = "test.aleo"
 function = "main"
 input = ["4u32"]
-[[cases]]
+[case]
 program = "test.aleo"
 function = "main"
 input = ["5u32"]
@@ -33,4 +34,7 @@ program test.aleo {
         assert(false);
         return true;
     }
+
+    @noupgrade
+    async constructor() {}
 }

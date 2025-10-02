@@ -21,9 +21,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// A type list of at least two types.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TupleType {
-    elements: Vec<Type>,
+    pub elements: Vec<Type>,
 }
 
 impl TupleType {
@@ -46,5 +46,11 @@ impl TupleType {
 impl fmt::Display for TupleType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({})", self.elements.iter().format(", "))
+    }
+}
+
+impl From<TupleType> for Type {
+    fn from(value: TupleType) -> Self {
+        Type::Tuple(value)
     }
 }

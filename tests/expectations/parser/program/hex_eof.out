@@ -1,8 +1,5 @@
-namespace = "Parse"
-expectation = "Fail"
-outputs = ["""
-Error [EPAR0370005]: expected : -- found '='
-    --> test:4:29
+Error [EPAR0370005]: expected '&&', '||', '&', '|', '^', '==', '!=', '<', '<=', '>', '>=', '+', '-', '*', '/', '**', '%', '<<', '>>', '[', '.', ';', '?', 'field', 'group', 'scalar', 'i8', 'i16', 'i32', 'i64', 'i128', 'u8', 'u16', 'u32', 'u64', 'u128', 'as' -- found 'x'
+    --> test:3:32
      |
-   4 |     function main() { let a = 0x}
-     |                             ^"""]
+   3 |     function main() { let a = 0x}
+     |                                ^

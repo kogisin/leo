@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
+use anyhow::anyhow;
+
 use super::*;
 
 /// Clean outputs folder command
@@ -35,13 +37,27 @@ impl Command for LeoClean {
     fn apply(self, context: Context, _: Self::Input) -> Result<Self::Output> {
         let path = context.dir()?;
 
+        let manifest_path = path.join(leo_package::MANIFEST_FILENAME);
+
+        if !manifest_path.exists() {
+            return Err(anyhow!(
+                "{} doesn't exist - this doesn't appear to be a Leo package.",
+                leo_package::MANIFEST_FILENAME
+            )
+            .into());
+        }
+
         // Removes the outputs/ directory.
-        let outputs_path = OutputsDirectory::remove(&path)?;
-        tracing::info!("🧹 Cleaned the outputs directory {}", outputs_path.dimmed());
+        let outputs_path = path.join(leo_package::OUTPUTS_DIRECTORY);
+        if std::fs::remove_dir_all(&outputs_path).is_ok() {
+            tracing::info!("🧹 Cleaned the outputs directory {}", outputs_path.display().to_string().dimmed());
+        }
 
         // Removes the build/ directory.
-        let build_path = BuildDirectory::remove(&path)?;
-        tracing::info!("🧹 Cleaned the build directory {}", build_path.dimmed());
+        let build_path = path.join(leo_package::BUILD_DIRECTORY);
+        if std::fs::remove_dir_all(&build_path).is_ok() {
+            tracing::info!("🧹 Cleaned the build directory {}", build_path.display().to_string().dimmed());
+        }
 
         Ok(())
     }

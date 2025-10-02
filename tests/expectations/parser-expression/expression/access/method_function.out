@@ -1,0 +1,60 @@
+{
+  "Unary": {
+    "receiver": {
+      "Path": {
+        "qualifier": [],
+        "identifier": {
+          "name": "a",
+          "span": {
+            "lo": 0,
+            "hi": 1
+          },
+          "id": 3
+        },
+        "absolute_path": null,
+        "span": {
+          "lo": 0,
+          "hi": 1
+        },
+        "id": 2
+      }
+    },
+    "op": "ToXCoordinate",
+    "span": {
+      "lo": 0,
+      "hi": 19
+    },
+    "id": 0
+  }
+}
+
+{
+  "Unary": {
+    "receiver": {
+      "Path": {
+        "qualifier": [],
+        "identifier": {
+          "name": "b",
+          "span": {
+            "lo": 20,
+            "hi": 21
+          },
+          "id": 3
+        },
+        "absolute_path": null,
+        "span": {
+          "lo": 20,
+          "hi": 21
+        },
+        "id": 2
+      }
+    },
+    "op": "ToYCoordinate",
+    "span": {
+      "lo": 20,
+      "hi": 39
+    },
+    "id": 0
+  }
+}
+

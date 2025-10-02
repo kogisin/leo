@@ -1,7 +1,3 @@
-/*
-namespace = "Compile"
-expectation = "Fail"
-*/
 
 program test.aleo {
 
@@ -18,7 +14,7 @@ program test.aleo {
         };
         a;
         1u8;
-        -i8;
+        -1i8;
         1field;
         return a + b;
     }

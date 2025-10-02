@@ -1,8 +1,5 @@
-namespace = "Compile"
-expectation = "Fail"
-outputs = ["""
-Error [EPAR0370009]: unexpected string: expected 'expression', found 'async'
-    --> compiler-test:5:9
+Error [EPAR0370005]: expected '{' -- found 'finalize_foo'
+    --> compiler-test:4:15
      |
-   5 |         async finalize_foo(a);
-     |         ^^^^^"""]
+   4 |         async finalize_foo(a);
+     |               ^^^^^^^^^^^^

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use leo_ast::{AssignStatement, Expression, Identifier, NodeID, Statement};
+use leo_ast::{DefinitionPlace, DefinitionStatement, Expression, Identifier, NodeID, Statement};
 use leo_span::Symbol;
 
 use std::{cell::RefCell, fmt::Display};
@@ -33,10 +33,10 @@ impl Assigner {
         self.inner.borrow_mut().unique_symbol(arg, separator)
     }
 
-    /// Constructs the assignment statement `place = expr;`.
-    /// This function should be the only place where `AssignStatement`s are constructed.
-    pub fn simple_assign_statement(&self, identifier: Identifier, value: Expression, id: NodeID) -> Statement {
-        self.inner.borrow_mut().simple_assign_statement(identifier, value, id)
+    /// Constructs the definition statement `let place = expr;`.
+    /// This function should be the only place where `DefinitionStatement`s are constructed.
+    pub fn simple_definition(&self, identifier: Identifier, value: Expression, id: NodeID) -> Statement {
+        self.inner.borrow_mut().simple_definition(identifier, value, id)
     }
 }
 
@@ -55,14 +55,16 @@ impl AssignerInner {
         Symbol::intern(&format!("{}{}{}", arg, separator, self.counter - 1))
     }
 
-    /// Constructs the assignment statement `place = expr;`.
-    /// This function should be the only place where `AssignStatement`s are constructed.
-    fn simple_assign_statement(&mut self, identifier: Identifier, value: Expression, id: NodeID) -> Statement {
-        Statement::Assign(Box::new(AssignStatement {
-            place: Expression::Identifier(identifier),
+    /// Constructs the definition statement `let place = expr;`.
+    /// This function should be the only place where `DefinitionStatement`s are constructed.
+    fn simple_definition(&mut self, identifier: Identifier, value: Expression, id: NodeID) -> Statement {
+        DefinitionStatement {
+            place: DefinitionPlace::Single(identifier),
+            type_: None,
             value,
             span: Default::default(),
             id,
-        }))
+        }
+        .into()
     }
 }

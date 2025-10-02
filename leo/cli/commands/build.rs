@@ -16,56 +16,28 @@
 
 use super::*;
 
-use leo_ast::Stub;
-use leo_compiler::{Compiler, CompilerOptions, OutputOptions};
+use leo_ast::{NetworkName, Stub};
+use leo_compiler::{AstSnapshots, Compiler, CompilerOptions};
 use leo_errors::{CliError, UtilError};
-use leo_package::{build::BuildDirectory, outputs::OutputsDirectory, source::SourceDirectory};
-use leo_retriever::{Manifest, NetworkName, Retriever};
+use leo_package::{Manifest, Package};
 use leo_span::Symbol;
 
-use snarkvm::{
-    package::Package,
-    prelude::{MainnetV0, Network, ProgramID, TestnetV0},
-};
+use snarkvm::prelude::{CanaryV0, Itertools, MainnetV0, Program, TestnetV0};
 
 use indexmap::IndexMap;
-use snarkvm::prelude::CanaryV0;
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::path::Path;
 
 impl From<BuildOptions> for CompilerOptions {
     fn from(options: BuildOptions) -> Self {
-        let mut out_options = Self {
-            build: leo_compiler::BuildOptions {
-                dce_enabled: options.enable_dce,
-                conditional_block_max_depth: options.conditional_block_max_depth,
-                disable_conditional_branch_type_checking: options.disable_conditional_branch_type_checking,
+        Self {
+            ast_spans_enabled: options.enable_ast_spans,
+            ast_snapshots: if options.enable_all_ast_snapshots {
+                AstSnapshots::All
+            } else {
+                AstSnapshots::Some(options.ast_snapshots.into_iter().collect())
             },
-            output: OutputOptions {
-                ast_spans_enabled: options.enable_ast_spans,
-                initial_ast: options.enable_initial_ast_snapshot,
-                unrolled_ast: options.enable_unrolled_ast_snapshot,
-                ssa_ast: options.enable_ssa_ast_snapshot,
-                flattened_ast: options.enable_flattened_ast_snapshot,
-                destructured_ast: options.enable_destructured_ast_snapshot,
-                inlined_ast: options.enable_inlined_ast_snapshot,
-                dce_ast: options.enable_dce_ast_snapshot,
-            },
-        };
-        if options.enable_all_ast_snapshots {
-            out_options.output.initial_ast = true;
-            out_options.output.unrolled_ast = true;
-            out_options.output.ssa_ast = true;
-            out_options.output.flattened_ast = true;
-            out_options.output.destructured_ast = true;
-            out_options.output.inlined_ast = true;
-            out_options.output.dce_ast = true;
+            initial_ast: options.enable_all_ast_snapshots | options.enable_initial_ast_snapshot,
         }
-
-        out_options
     }
 }
 
@@ -74,11 +46,13 @@ impl From<BuildOptions> for CompilerOptions {
 pub struct LeoBuild {
     #[clap(flatten)]
     pub(crate) options: BuildOptions,
+    #[clap(flatten)]
+    pub(crate) env_override: EnvOptions,
 }
 
 impl Command for LeoBuild {
     type Input = ();
-    type Output = ();
+    type Output = Package;
 
     fn log_span(&self) -> Span {
         tracing::span!(tracing::Level::INFO, "Leo")
@@ -89,135 +63,185 @@ impl Command for LeoBuild {
     }
 
     fn apply(self, context: Context, _: Self::Input) -> Result<Self::Output> {
-        // Parse the network.
-        let network = NetworkName::try_from(context.get_network(&self.options.network)?)?;
-        match network {
-            NetworkName::MainnetV0 => handle_build::<MainnetV0>(&self, context),
-            NetworkName::TestnetV0 => handle_build::<TestnetV0>(&self, context),
-            NetworkName::CanaryV0 => handle_build::<CanaryV0>(&self, context),
-        }
+        // Build the program.
+        handle_build(&self, context)
     }
 }
 
 // A helper function to handle the build command.
-fn handle_build<N: Network>(command: &LeoBuild, context: Context) -> Result<<LeoBuild as Command>::Output> {
-    // Get the package path.
+fn handle_build(command: &LeoBuild, context: Context) -> Result<<LeoBuild as Command>::Output> {
+    // Get the package path and home directory.
     let package_path = context.dir()?;
     let home_path = context.home()?;
 
-    // Get the program id.
-    let manifest = Manifest::read_from_dir(&package_path)?;
-    let program_id = ProgramID::<N>::from_str(manifest.program())?;
+    // Get the network, defaulting to `TestnetV0` if none is specified.
+    let network = match get_network(&command.env_override.network) {
+        Ok(network) => network,
+        Err(_) => {
+            println!("⚠️ No network specified, defaulting to 'testnet'.");
+            NetworkName::TestnetV0
+        }
+    };
 
-    // Clear and recreate the build directory.
-    let build_directory = package_path.join("build");
-    if build_directory.exists() {
-        std::fs::remove_dir_all(&build_directory).map_err(CliError::build_error)?;
+    // Get the endpoint, if it is provided.
+    let endpoint = get_endpoint(&command.env_override.endpoint).ok();
+
+    let package = if command.options.build_tests {
+        Package::from_directory_with_tests(
+            &package_path,
+            &home_path,
+            command.options.no_cache,
+            command.options.no_local,
+            Some(network),
+            endpoint.as_deref(),
+        )?
+    } else {
+        Package::from_directory(
+            &package_path,
+            &home_path,
+            command.options.no_cache,
+            command.options.no_local,
+            Some(network),
+            endpoint.as_deref(),
+        )?
+    };
+
+    // Check the manifest for the compiler version.
+    // If it does not match, warn the user and continue.
+    if package.manifest.leo != env!("CARGO_PKG_VERSION") {
+        tracing::warn!(
+            "The Leo compiler version in the manifest ({}) does not match the current version ({}).",
+            package.manifest.leo,
+            env!("CARGO_PKG_VERSION")
+        );
     }
-    Package::create(&build_directory, &program_id).map_err(CliError::build_error)?;
 
-    // Initialize error handler
+    let outputs_directory = package.outputs_directory();
+    let build_directory = package.build_directory();
+    let imports_directory = package.imports_directory();
+    let source_directory = package.source_directory();
+    let main_source_path = source_directory.join("main.leo");
+
+    for dir in [&outputs_directory, &build_directory, &imports_directory] {
+        std::fs::create_dir_all(dir).map_err(|err| {
+            UtilError::util_file_io_error(format_args!("Couldn't create directory {}", dir.display()), err)
+        })?;
+    }
+
+    // Initialize error handler.
     let handler = Handler::default();
 
-    // Retrieve all local dependencies in post order
-    let main_sym = Symbol::intern(&program_id.name().to_string());
-    let mut retriever = Retriever::<N>::new(
-        main_sym,
-        &package_path,
-        &home_path,
-        context.get_endpoint(&command.options.endpoint)?.to_string(),
-    )
-    .map_err(|err| UtilError::failed_to_retrieve_dependencies(err, Default::default()))?;
-    let mut local_dependencies =
-        retriever.retrieve().map_err(|err| UtilError::failed_to_retrieve_dependencies(err, Default::default()))?;
+    let mut stubs: IndexMap<Symbol, Stub> = IndexMap::new();
 
-    // Push the main program at the end of the list to be compiled after all of its dependencies have been processed
-    local_dependencies.push(main_sym);
-
-    // Recursive build will recursively compile all local dependencies. Can disable to save compile time.
-    let recursive_build = !command.options.non_recursive;
-
-    // Loop through all local dependencies and compile them in order
-    for dependency in local_dependencies.into_iter() {
-        if recursive_build || dependency == main_sym {
-            // Get path to the local project
-            let (local_path, stubs) = retriever.prepare_local(dependency)?;
-
-            // Create the outputs directory.
-            let local_outputs_directory = OutputsDirectory::create(&local_path)?;
-
-            // Open the build directory.
-            let local_build_directory = BuildDirectory::create(&local_path)?;
-
-            // Fetch paths to all .leo files in the source directory.
-            let local_source_files = SourceDirectory::files(&local_path)?;
-
-            // Check the source files.
-            SourceDirectory::check_files(&local_source_files)?;
-
-            // Compile all .leo files into .aleo files.
-            for file_path in local_source_files {
-                compile_leo_file(
-                    file_path,
-                    &ProgramID::<N>::try_from(format!("{}.aleo", dependency))
-                        .map_err(|_| UtilError::snarkvm_error_building_program_id(Default::default()))?,
-                    &local_outputs_directory,
-                    &local_build_directory,
+    for program in package.programs.iter() {
+        let (bytecode, build_path) = match &program.data {
+            leo_package::ProgramData::Bytecode(bytecode) => {
+                // This was a network dependency or local .aleo dependency, and we have its bytecode.
+                (bytecode.clone(), imports_directory.join(format!("{}.aleo", program.name)))
+            }
+            leo_package::ProgramData::SourcePath { directory, source } => {
+                // This is a local dependency, so we must compile it.
+                let build_path = if source == &main_source_path {
+                    build_directory.join("main.aleo")
+                } else {
+                    imports_directory.join(format!("{}.aleo", program.name))
+                };
+                // Load the manifest in local dependency.
+                let source_dir = directory.join("src");
+                let bytecode = compile_leo_source_directory(
+                    source, // entry file
+                    &source_dir,
+                    program.name,
+                    program.is_test,
+                    &outputs_directory,
                     &handler,
                     command.options.clone(),
                     stubs.clone(),
+                    network,
                 )?;
+                (bytecode, build_path)
             }
-        }
+        };
 
-        // Writes `leo.lock` as well as caches objects (when target is an intermediate dependency)
-        retriever.process_local(dependency, recursive_build)?;
+        // Write the .aleo file.
+        std::fs::write(build_path, &bytecode).map_err(CliError::failed_to_load_instructions)?;
+
+        // Track the Stub.
+        let stub = match network {
+            NetworkName::MainnetV0 => leo_disassembler::disassemble_from_str::<MainnetV0>(program.name, &bytecode),
+            NetworkName::TestnetV0 => leo_disassembler::disassemble_from_str::<TestnetV0>(program.name, &bytecode),
+            NetworkName::CanaryV0 => leo_disassembler::disassemble_from_str::<CanaryV0>(program.name, &bytecode),
+        }?;
+        stubs.insert(program.name, stub);
     }
 
-    // `Package::open` checks that the build directory and that `main.aleo` and all imported files are well-formed.
-    Package::<N>::open(&build_directory).map_err(CliError::failed_to_execute_build)?;
+    // SnarkVM expects to find a `program.json` file in the build directory, so make
+    // a bogus one.
+    let build_manifest_path = build_directory.join(leo_package::MANIFEST_FILENAME);
+    let fake_manifest = Manifest {
+        program: package.manifest.program.clone(),
+        version: "0.1.0".to_string(),
+        description: String::new(),
+        license: String::new(),
+        leo: env!("CARGO_PKG_VERSION").to_string(),
+        dependencies: None,
+        dev_dependencies: None,
+    };
+    fake_manifest.write_to_file(build_manifest_path)?;
 
-    Ok(())
+    Ok(package)
 }
 
-/// Compiles a Leo file in the `src/` directory.
+/// Compiles a Leo file. Writes and returns the compiled bytecode.
 #[allow(clippy::too_many_arguments)]
-fn compile_leo_file<N: Network>(
-    file_path: PathBuf,
-    program_id: &ProgramID<N>,
-    outputs: &Path,
-    build: &Path,
+fn compile_leo_source_directory(
+    entry_file_path: &Path,
+    source_directory: &Path,
+    program_name: Symbol,
+    is_test: bool,
+    output_path: &Path,
     handler: &Handler,
     options: BuildOptions,
     stubs: IndexMap<Symbol, Stub>,
-) -> Result<()> {
-    // Construct program name from the program_id found in `package.json`.
-    let program_name = program_id.name().to_string();
-
-    // Create the path to the Aleo file.
-    let mut aleo_file_path = build.to_path_buf();
-    aleo_file_path.push(format!("main.{}", program_id.network()));
-
+    network: NetworkName,
+) -> Result<String> {
     // Create a new instance of the Leo compiler.
-    let mut compiler = Compiler::<N>::new(
-        program_name.clone(),
-        program_id.network().to_string(),
-        handler,
-        file_path.clone(),
-        outputs.to_path_buf(),
+    let mut compiler = Compiler::new(
+        Some(program_name.to_string()),
+        is_test,
+        handler.clone(),
+        output_path.to_path_buf(),
         Some(options.into()),
         stubs,
+        network,
     );
 
     // Compile the Leo program into Aleo instructions.
-    let instructions = compiler.compile()?;
+    let bytecode = compiler.compile_from_directory(entry_file_path, source_directory)?;
 
-    // Write the instructions.
-    std::fs::File::create(&aleo_file_path)
-        .map_err(CliError::failed_to_load_instructions)?
-        .write_all(instructions.as_bytes())
-        .map_err(CliError::failed_to_load_instructions)?;
+    // Check the program size limit.
+    use leo_package::MAX_PROGRAM_SIZE;
+    let program_size = bytecode.len();
 
-    tracing::info!("✅ Compiled '{program_name}.aleo' into Aleo instructions");
-    Ok(())
+    if program_size > MAX_PROGRAM_SIZE {
+        return Err(leo_errors::LeoError::UtilError(UtilError::program_size_limit_exceeded(
+            program_name,
+            program_size,
+            MAX_PROGRAM_SIZE,
+        )));
+    }
+
+    // Get the AVM bytecode.
+    let checksum: String = match network {
+        NetworkName::MainnetV0 => Program::<MainnetV0>::from_str(&bytecode)?.to_checksum().iter().join(", "),
+        NetworkName::TestnetV0 => Program::<TestnetV0>::from_str(&bytecode)?.to_checksum().iter().join(", "),
+        NetworkName::CanaryV0 => Program::<CanaryV0>::from_str(&bytecode)?.to_checksum().iter().join(", "),
+    };
+
+    tracing::info!("    {} statements before dead code elimination.", compiler.statements_before_dce);
+    tracing::info!("    {} statements after dead code elimination.", compiler.statements_after_dce);
+    tracing::info!("    The program checksum is: '[{checksum}]'.");
+
+    tracing::info!("✅ Compiled '{program_name}.aleo' into Aleo instructions.");
+    Ok(bytecode)
 }

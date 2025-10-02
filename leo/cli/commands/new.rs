@@ -15,9 +15,8 @@
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
 use super::*;
-use snarkvm::prelude::{CanaryV0, MainnetV0, TestnetV0};
 
-use leo_retriever::NetworkName;
+use leo_package::Package;
 
 /// Create new Leo project
 #[derive(Parser, Debug)]
@@ -30,7 +29,7 @@ pub struct LeoNew {
         short = 'e',
         long,
         help = "Endpoint to retrieve network state from.",
-        default_value = "https://api.explorer.provable.com/v1"
+        default_value = "http://localhost:3030"
     )]
     pub(crate) endpoint: String,
 }
@@ -48,9 +47,6 @@ impl Command for LeoNew {
     }
 
     fn apply(self, context: Context, _: Self::Input) -> Result<Self::Output> {
-        // Parse the network.
-        let network = NetworkName::try_from(self.network.as_str())?;
-
         // Derive the location of the parent directory to the project.
         let package_path = context.parent_dir()?;
 
@@ -58,12 +54,9 @@ impl Command for LeoNew {
         std::env::set_current_dir(&package_path)
             .map_err(|err| PackageError::failed_to_set_cwd(package_path.display(), err))?;
 
-        // Initialize the package.
-        match network {
-            NetworkName::MainnetV0 => Package::initialize::<MainnetV0>(&self.name, &package_path, self.endpoint),
-            NetworkName::TestnetV0 => Package::initialize::<TestnetV0>(&self.name, &package_path, self.endpoint),
-            NetworkName::CanaryV0 => Package::initialize::<CanaryV0>(&self.name, &package_path, self.endpoint),
-        }?;
+        let full_path = Package::initialize(&self.name, &package_path)?;
+
+        println!("Created program {} at `{}`.", self.name.bold(), full_path.display());
 
         Ok(())
     }

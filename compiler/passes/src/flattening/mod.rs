@@ -18,7 +18,7 @@
 //! The pass flattens `ConditionalStatement`s into a sequence of `AssignStatement`s.
 //! The pass rewrites `ReturnStatement`s into `AssignStatement`s and consolidates the returned values as a single `ReturnStatement` at the end of the function.
 //! The pass rewrites ternary expressions over composite data types, into ternary expressions over the individual fields of the composite data type, followed by an expression constructing the composite data type.
-//! Note that this transformation is not applied to async functioins.
+//! Note that this transformation is not applied to async functions.
 //!
 //! Consider the following Leo code, output by the SSA pass.
 //! ```leo
@@ -51,28 +51,39 @@
 //! }
 //! ```
 
-mod flatten_expression;
+use crate::Pass;
 
-mod flatten_program;
-
-mod flatten_statement;
-
-pub mod flattener;
-pub use flattener::*;
-
-use crate::{Assigner, Pass, SymbolTable, TypeTable};
-
-use leo_ast::{Ast, NodeBuilder, ProgramReconstructor};
+use leo_ast::ProgramReconstructor as _;
 use leo_errors::Result;
+use leo_span::Symbol;
 
-impl<'a> Pass for Flattener<'a> {
-    type Input = (Ast, &'a SymbolTable, &'a TypeTable, &'a NodeBuilder, &'a Assigner);
-    type Output = Result<Ast>;
+mod ast;
 
-    fn do_pass((ast, symbol_table, type_table, node_builder, assigner): Self::Input) -> Self::Output {
-        let mut reconstructor = Flattener::new(symbol_table, type_table, node_builder, assigner);
-        let program = reconstructor.reconstruct_program(ast.into_repr());
+mod program;
 
-        Ok(Ast::new(program))
+mod visitor;
+use visitor::*;
+
+pub struct Flattening;
+
+impl Pass for Flattening {
+    type Input = ();
+    type Output = ();
+
+    const NAME: &str = "Flattening";
+
+    fn do_pass(_input: Self::Input, state: &mut crate::CompilerState) -> Result<Self::Output> {
+        let mut ast = std::mem::take(&mut state.ast);
+        let mut visitor = FlatteningVisitor {
+            state,
+            condition_stack: Vec::new(),
+            returns: Vec::new(),
+            program: Symbol::intern(""),
+            is_async: false,
+        };
+        ast.ast = visitor.reconstruct_program(ast.ast);
+        visitor.state.handler.last_err()?;
+        visitor.state.ast = ast;
+        Ok(())
     }
 }

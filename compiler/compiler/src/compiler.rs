@@ -18,402 +18,311 @@
 //!
 //! The [`Compiler`] type compiles Leo programs into R1CS circuits.
 
-use crate::CompilerOptions;
+use crate::{AstSnapshots, CompilerOptions};
 
 pub use leo_ast::Ast;
-use leo_ast::{NodeBuilder, Program, Stub};
-use leo_errors::{CompilerError, Result, emitter::Handler};
+use leo_ast::{NetworkName, Stub};
+use leo_errors::{CompilerError, Handler, Result};
 use leo_passes::*;
-use leo_span::{Symbol, source_map::FileName, symbol::with_session_globals};
+use leo_span::{Symbol, source_map::FileName, with_session_globals};
 
-use snarkvm::prelude::Network;
+use std::{
+    ffi::OsStr,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use indexmap::{IndexMap, IndexSet};
-use sha2::{Digest, Sha256};
-use std::{fs, path::PathBuf};
+use walkdir::WalkDir;
 
 /// The primary entry point of the Leo compiler.
-#[derive(Clone)]
-pub struct Compiler<'a, N: Network> {
-    /// The handler is used for error and warning emissions.
-    handler: &'a Handler,
-    /// The path to the main leo file.
-    main_file_path: PathBuf,
+pub struct Compiler {
     /// The path to where the compiler outputs all generated files.
     output_directory: PathBuf,
     /// The program name,
-    pub program_name: String,
-    /// The network name,
-    pub network: String,
-    /// The AST for the program.
-    pub ast: Ast,
+    pub program_name: Option<String>,
     /// Options configuring compilation.
     compiler_options: CompilerOptions,
-    /// The `NodeCounter` used to generate sequentially increasing `NodeID`s.
-    node_builder: NodeBuilder,
-    /// The `Assigner` is used to construct (unique) assignment statements.
-    assigner: Assigner,
-    /// The type table.
-    type_table: TypeTable,
-    /// The stubs for imported programs. Produced by `Retriever` module.
+    /// State.
+    state: CompilerState,
+    /// The stubs for imported programs.
     import_stubs: IndexMap<Symbol, Stub>,
-    // Allows the compiler to be generic over the network.
-    phantom: std::marker::PhantomData<N>,
+    /// How many statements were in the AST before DCE?
+    pub statements_before_dce: u32,
+    /// How many statements were in the AST after DCE?
+    pub statements_after_dce: u32,
 }
 
-impl<'a, N: Network> Compiler<'a, N> {
-    /// Returns a new Leo compiler.
-    pub fn new(
-        program_name: String,
-        network: String,
-        handler: &'a Handler,
-        main_file_path: PathBuf,
-        output_directory: PathBuf,
-        compiler_options: Option<CompilerOptions>,
-        import_stubs: IndexMap<Symbol, Stub>,
-    ) -> Self {
-        let node_builder = NodeBuilder::default();
-        let assigner = Assigner::default();
-        let type_table = TypeTable::default();
-        Self {
-            handler,
-            main_file_path,
-            output_directory,
-            program_name,
-            network,
-            ast: Ast::new(Program::default()),
-            compiler_options: compiler_options.unwrap_or_default(),
-            node_builder,
-            assigner,
-            import_stubs,
-            type_table,
-            phantom: Default::default(),
-        }
-    }
+impl Compiler {
+    pub fn parse(&mut self, source: &str, filename: FileName, modules: &[(&str, FileName)]) -> Result<()> {
+        // Register the source in the source map.
+        let source_file = with_session_globals(|s| s.source_map.new_source(source, filename));
 
-    /// Returns a SHA256 checksum of the program file.
-    pub fn checksum(&self) -> Result<String> {
-        // Read in the main file as string
-        let unparsed_file = fs::read_to_string(&self.main_file_path)
-            .map_err(|e| CompilerError::file_read_error(self.main_file_path.clone(), e))?;
-
-        // Hash the file contents
-        let mut hasher = Sha256::new();
-        hasher.update(unparsed_file.as_bytes());
-        let hash = hasher.finalize();
-
-        Ok(format!("{hash:x}"))
-    }
-
-    /// Parses and stores a program file content from a string, constructs a syntax tree, and generates a program.
-    pub fn parse_program_from_string(&mut self, program_string: &str, name: FileName) -> Result<()> {
-        // Register the source (`program_string`) in the source map.
-        let prg_sf = with_session_globals(|s| s.source_map.new_source(program_string, name));
+        // Register the sources of all the modules in the source map.
+        let modules = modules
+            .iter()
+            .map(|(source, filename)| with_session_globals(|s| s.source_map.new_source(source, filename.clone())))
+            .collect::<Vec<_>>();
 
         // Use the parser to construct the abstract syntax tree (ast).
-        self.ast = leo_parser::parse_ast::<N>(self.handler, &self.node_builder, &prg_sf.src, prg_sf.start_pos)?;
+        self.state.ast = leo_parser::parse_ast(
+            self.state.handler.clone(),
+            &self.state.node_builder,
+            &source_file,
+            &modules,
+            self.state.network,
+        )?;
 
-        // If the program is imported, then check that the name of its program scope matches the file name.
+        // Check that the name of its program scope matches the expected name.
         // Note that parsing enforces that there is exactly one program scope in a file.
-        // TODO: Clean up check.
-        let program_scope = self.ast.ast.program_scopes.values().next().unwrap();
-        let program_scope_name = format!("{}", program_scope.program_id.name);
-        if program_scope_name != self.program_name {
-            return Err(CompilerError::program_scope_name_does_not_match(
-                program_scope_name,
-                self.program_name.clone(),
+        let program_scope = self.state.ast.ast.program_scopes.values().next().unwrap();
+        if self.program_name.is_none() {
+            self.program_name = Some(program_scope.program_id.name.to_string());
+        } else if self.program_name != Some(program_scope.program_id.name.to_string()) {
+            return Err(CompilerError::program_name_should_match_file_name(
+                program_scope.program_id.name,
+                self.program_name.as_ref().unwrap(),
                 program_scope.program_id.name.span,
             )
             .into());
         }
 
-        if self.compiler_options.output.initial_ast {
-            self.write_ast_to_json("initial_ast.json")?;
+        if self.compiler_options.initial_ast {
+            self.write_ast_to_json("initial.json")?;
+            self.write_ast("initial.ast")?;
         }
 
         Ok(())
     }
 
-    /// Parses and stores the main program file, constructs a syntax tree, and generates a program.
-    pub fn parse_program(&mut self) -> Result<()> {
-        // Load the program file.
-        let program_string = fs::read_to_string(&self.main_file_path)
-            .map_err(|e| CompilerError::file_read_error(&self.main_file_path, e))?;
-
-        self.parse_program_from_string(&program_string, FileName::Real(self.main_file_path.clone()))
-    }
-
-    /// Runs the symbol table pass.
-    pub fn symbol_table_pass(&self) -> Result<SymbolTable> {
-        let symbol_table = SymbolTableCreator::do_pass((&self.ast, self.handler))?;
-        Ok(symbol_table)
-    }
-
-    /// Runs the type checker pass.
-    pub fn type_checker_pass(&'a self, symbol_table: &mut SymbolTable) -> Result<(StructGraph, CallGraph)> {
-        let (struct_graph, call_graph) =
-            TypeChecker::do_pass((&self.ast, self.handler, symbol_table, &self.type_table, NetworkLimits {
-                max_array_elements: N::MAX_ARRAY_ELEMENTS,
-                max_mappings: N::MAX_MAPPINGS,
-                max_functions: N::MAX_FUNCTIONS,
-            }))?;
-        Ok((struct_graph, call_graph))
-    }
-
-    /// Runs the static analysis pass.
-    pub fn static_analysis_pass(&mut self, symbol_table: &SymbolTable) -> Result<()> {
-        StaticAnalyzer::<N>::do_pass((
-            &self.ast,
-            self.handler,
-            symbol_table,
-            &self.type_table,
-            self.compiler_options.build.conditional_block_max_depth,
-            self.compiler_options.build.disable_conditional_branch_type_checking,
-        ))
-    }
-
-    /// Run const propagation and loop unrolling until we hit a fixed point or find an error.
-    pub fn const_propagation_and_unroll_loop(&mut self, symbol_table: &mut SymbolTable) -> Result<()> {
-        const LARGE_LOOP_BOUND: usize = 1024usize;
-
-        for _ in 0..LARGE_LOOP_BOUND {
-            let loop_unroll_output = self.loop_unrolling_pass(symbol_table)?;
-
-            let const_prop_output = self.const_propagation_pass(symbol_table)?;
-
-            if !const_prop_output.changed && !loop_unroll_output.loop_unrolled {
-                // We've got a fixed point, so see if we have any errors.
-                if let Some(not_evaluated_span) = const_prop_output.const_not_evaluated {
-                    return Err(CompilerError::const_not_evaluated(not_evaluated_span).into());
-                }
-
-                if let Some(not_evaluated_span) = const_prop_output.array_index_not_evaluated {
-                    return Err(CompilerError::array_index_not_evaluated(not_evaluated_span).into());
-                }
-
-                if let Some(not_unrolled_span) = loop_unroll_output.loop_not_unrolled {
-                    return Err(CompilerError::loop_bounds_not_evaluated(not_unrolled_span).into());
-                }
-
-                if self.compiler_options.output.unrolled_ast {
-                    self.write_ast_to_json("unrolled_ast.json")?;
-                }
-
-                return Ok(());
-            }
+    /// Returns a new Leo compiler.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        expected_program_name: Option<String>,
+        is_test: bool,
+        handler: Handler,
+        output_directory: PathBuf,
+        compiler_options: Option<CompilerOptions>,
+        import_stubs: IndexMap<Symbol, Stub>,
+        network: NetworkName,
+    ) -> Self {
+        Self {
+            state: CompilerState { handler, is_test, network, ..Default::default() },
+            output_directory,
+            program_name: expected_program_name,
+            compiler_options: compiler_options.unwrap_or_default(),
+            import_stubs,
+            statements_before_dce: 0,
+            statements_after_dce: 0,
         }
-
-        // Note that it's challenging to write code in practice that demonstrates this error, because Leo code
-        // with many nested loops or operations will blow the stack in the compiler before this bound is hit.
-        Err(CompilerError::const_prop_unroll_many_loops(LARGE_LOOP_BOUND, Default::default()).into())
     }
 
-    /// Runs the const propagation pass.
-    pub fn const_propagation_pass(&mut self, symbol_table: &mut SymbolTable) -> Result<ConstPropagatorOutput> {
-        let (ast, output) = ConstPropagator::do_pass((
-            std::mem::take(&mut self.ast),
-            self.handler,
-            symbol_table,
-            &self.type_table,
-            &self.node_builder,
-        ))?;
+    fn do_pass<P: Pass>(&mut self, input: P::Input) -> Result<P::Output> {
+        let output = P::do_pass(input, &mut self.state)?;
 
-        self.ast = ast;
+        let write = match &self.compiler_options.ast_snapshots {
+            AstSnapshots::All => true,
+            AstSnapshots::Some(passes) => passes.contains(P::NAME),
+        };
+
+        if write {
+            self.write_ast_to_json(&format!("{}.json", P::NAME))?;
+            self.write_ast(&format!("{}.ast", P::NAME))?;
+        }
 
         Ok(output)
-    }
-
-    /// Runs the loop unrolling pass.
-    pub fn loop_unrolling_pass(&mut self, symbol_table: &mut SymbolTable) -> Result<UnrollerOutput> {
-        let (ast, output) = Unroller::do_pass((
-            std::mem::take(&mut self.ast),
-            self.handler,
-            &self.node_builder,
-            symbol_table,
-            &self.type_table,
-        ))?;
-
-        self.ast = ast;
-
-        Ok(output)
-    }
-
-    /// Runs the static single assignment pass.
-    pub fn static_single_assignment_pass(&mut self, symbol_table: &SymbolTable) -> Result<()> {
-        self.ast = StaticSingleAssigner::do_pass((
-            std::mem::take(&mut self.ast),
-            &self.node_builder,
-            &self.assigner,
-            symbol_table,
-            &self.type_table,
-        ))?;
-
-        if self.compiler_options.output.ssa_ast {
-            self.write_ast_to_json("ssa_ast.json")?;
-        }
-
-        Ok(())
-    }
-
-    /// Runs the flattening pass.
-    pub fn flattening_pass(&mut self, symbol_table: &SymbolTable) -> Result<()> {
-        self.ast = Flattener::do_pass((
-            std::mem::take(&mut self.ast),
-            symbol_table,
-            &self.type_table,
-            &self.node_builder,
-            &self.assigner,
-        ))?;
-
-        if self.compiler_options.output.flattened_ast {
-            self.write_ast_to_json("flattened_ast.json")?;
-        }
-
-        Ok(())
-    }
-
-    /// Runs the destructuring pass.
-    pub fn destructuring_pass(&mut self) -> Result<()> {
-        self.ast = Destructurer::do_pass((
-            std::mem::take(&mut self.ast),
-            &self.type_table,
-            &self.node_builder,
-            &self.assigner,
-        ))?;
-
-        if self.compiler_options.output.destructured_ast {
-            self.write_ast_to_json("destructured_ast.json")?;
-        }
-
-        Ok(())
-    }
-
-    /// Runs the function inlining pass.
-    pub fn function_inlining_pass(&mut self, call_graph: &CallGraph) -> Result<()> {
-        let ast = FunctionInliner::do_pass((
-            std::mem::take(&mut self.ast),
-            &self.node_builder,
-            call_graph,
-            &self.assigner,
-            &self.type_table,
-        ))?;
-        self.ast = ast;
-
-        if self.compiler_options.output.inlined_ast {
-            self.write_ast_to_json("inlined_ast.json")?;
-        }
-
-        Ok(())
-    }
-
-    /// Runs the dead code elimination pass.
-    pub fn dead_code_elimination_pass(&mut self) -> Result<()> {
-        if self.compiler_options.build.dce_enabled {
-            self.ast = DeadCodeEliminator::do_pass((std::mem::take(&mut self.ast), &self.node_builder))?;
-        }
-
-        if self.compiler_options.output.dce_ast {
-            self.write_ast_to_json("dce_ast.json")?;
-        }
-
-        Ok(())
-    }
-
-    /// Runs the code generation pass.
-    pub fn code_generation_pass(
-        &mut self,
-        symbol_table: &SymbolTable,
-        struct_graph: &StructGraph,
-        call_graph: &CallGraph,
-    ) -> Result<String> {
-        CodeGenerator::do_pass((&self.ast, symbol_table, &self.type_table, struct_graph, call_graph, &self.ast.ast))
     }
 
     /// Runs the compiler stages.
-    pub fn compiler_stages(&mut self) -> Result<(SymbolTable, StructGraph, CallGraph)> {
-        let mut st = self.symbol_table_pass()?;
+    pub fn intermediate_passes(&mut self) -> Result<()> {
+        let type_checking_config = TypeCheckingInput::new(self.state.network);
 
-        let (struct_graph, call_graph) = self.type_checker_pass(&mut st)?;
+        self.do_pass::<PathResolution>(())?;
 
-        self.static_analysis_pass(&st)?;
+        self.do_pass::<SymbolTableCreation>(())?;
 
-        self.const_propagation_and_unroll_loop(&mut st)?;
+        self.do_pass::<TypeChecking>(type_checking_config.clone())?;
 
-        self.static_single_assignment_pass(&st)?;
+        self.do_pass::<ProcessingAsync>(type_checking_config.clone())?;
 
-        self.flattening_pass(&st)?;
+        self.do_pass::<StaticAnalyzing>(())?;
 
-        self.destructuring_pass()?;
+        self.do_pass::<ConstPropUnrollAndMorphing>(type_checking_config)?;
 
-        self.function_inlining_pass(&call_graph)?;
+        self.do_pass::<ProcessingScript>(())?;
 
-        self.dead_code_elimination_pass()?;
+        self.do_pass::<SsaForming>(SsaFormingInput { rename_defs: true })?;
 
-        Ok((st, struct_graph, call_graph))
+        self.do_pass::<Destructuring>(())?;
+
+        self.do_pass::<SsaForming>(SsaFormingInput { rename_defs: false })?;
+
+        self.do_pass::<WriteTransforming>(())?;
+
+        self.do_pass::<SsaForming>(SsaFormingInput { rename_defs: false })?;
+
+        self.do_pass::<Flattening>(())?;
+
+        self.do_pass::<FunctionInlining>(())?;
+
+        // Flattening may produce ternary expressions not in SSA form. In addition,
+        // inlining may create shadowed variables, so rename definitions.
+        self.do_pass::<SsaForming>(SsaFormingInput { rename_defs: true })?;
+
+        self.do_pass::<CommonSubexpressionEliminating>(())?;
+
+        let output = self.do_pass::<DeadCodeEliminating>(())?;
+        self.statements_before_dce = output.statements_before;
+        self.statements_after_dce = output.statements_after;
+
+        Ok(())
     }
 
-    /// Returns a compiled Leo program.
-    pub fn compile(&mut self) -> Result<String> {
+    /// Compiles a program from a given source string and a list of module sources.
+    ///
+    /// # Arguments
+    ///
+    /// * `source` - The main source code as a string slice.
+    /// * `filename` - The name of the main source file.
+    /// * `modules` - A vector of tuples where each tuple contains:
+    ///     - A module source as a string slice.
+    ///     - Its associated `FileName`.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` containing the generated bytecode if compilation succeeds.
+    /// * `Err(CompilerError)` if any stage of the pipeline fails.
+    pub fn compile(&mut self, source: &str, filename: FileName, modules: &Vec<(&str, FileName)>) -> Result<String> {
         // Parse the program.
-        self.parse_program()?;
-        // Copy the dependencies specified in `program.json` into the AST.
+        self.parse(source, filename, modules)?;
+        // Merge the stubs into the AST.
         self.add_import_stubs()?;
         // Run the intermediate compiler stages.
-        let (symbol_table, struct_graph, call_graph) = self.compiler_stages()?;
+        self.intermediate_passes()?;
         // Run code generation.
-        let bytecode = self.code_generation_pass(&symbol_table, &struct_graph, &call_graph)?;
+        let bytecode = CodeGenerating::do_pass((), &mut self.state)?;
         Ok(bytecode)
+    }
+
+    /// Compiles a program from a source file and its associated module files in the same directory tree.
+    ///
+    /// This method reads the main source file and collects all other source files under the same
+    /// root directory (excluding the main file itself). It assumes a modular structure where additional
+    /// source files are compiled as modules, with deeper files (submodules) compiled first.
+    ///
+    /// # Arguments
+    ///
+    /// * `source_file_path` - A path to the main source file to compile. It must have a parent directory,
+    ///   which is used as the root for discovering additional module files.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` containing the compiled output if successful.
+    /// * `Err(CompilerError)` if reading the main file fails or a compilation error occurs.
+    ///
+    /// # Panics
+    ///
+    /// * If the provided source file has no parent directory.
+    /// * If any discovered module file cannot be read (marked as a TODO).
+    pub fn compile_from_directory(
+        &mut self,
+        entry_file_path: impl AsRef<Path>,
+        source_directory: impl AsRef<Path>,
+    ) -> Result<String> {
+        // Read the contents of the main source file.
+        let source = fs::read_to_string(&entry_file_path)
+            .map_err(|e| CompilerError::file_read_error(entry_file_path.as_ref().display().to_string(), e))?;
+
+        // Walk all files under source_directory recursively, excluding the main source file itself.
+        let files = WalkDir::new(source_directory)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|e| {
+                e.file_type().is_file()
+                    && e.path() != entry_file_path.as_ref()
+                    && e.path().extension() == Some(OsStr::new("leo"))
+            })
+            .collect::<Vec<_>>();
+
+        let mut module_sources = Vec::new(); // Keep Strings alive for valid borrowing
+        let mut modules = Vec::new(); // Parsed (source, filename) tuples for compilation
+
+        // Read all module files and store their contents
+        for file in &files {
+            let source = fs::read_to_string(file.path())
+                .map_err(|e| CompilerError::file_read_error(file.path().display().to_string(), e))?;
+            module_sources.push(source); // Keep the String alive
+        }
+
+        // Create tuples of (&str, FileName) for the compiler
+        for (i, file) in files.iter().enumerate() {
+            let source = &module_sources[i]; // Borrow from the alive String
+            modules.push((&source[..], FileName::Real(file.path().into())));
+        }
+
+        // Compile the main source along with all collected modules
+        self.compile(&source, FileName::Real(entry_file_path.as_ref().into()), &modules)
     }
 
     /// Writes the AST to a JSON file.
     fn write_ast_to_json(&self, file_suffix: &str) -> Result<()> {
         // Remove `Span`s if they are not enabled.
-        if self.compiler_options.output.ast_spans_enabled {
-            self.ast.to_json_file(self.output_directory.clone(), &format!("{}.{file_suffix}", self.program_name))?;
-        } else {
-            self.ast.to_json_file_without_keys(
+        if self.compiler_options.ast_spans_enabled {
+            self.state.ast.to_json_file(
                 self.output_directory.clone(),
-                &format!("{}.{file_suffix}", self.program_name),
+                &format!("{}.{file_suffix}", self.program_name.as_ref().unwrap()),
+            )?;
+        } else {
+            self.state.ast.to_json_file_without_keys(
+                self.output_directory.clone(),
+                &format!("{}.{file_suffix}", self.program_name.as_ref().unwrap()),
                 &["_span", "span"],
             )?;
         }
         Ok(())
     }
 
-    /// Merges the dependencies defined in `program.json` with the dependencies imported in `.leo` file
-    pub fn add_import_stubs(&mut self) -> Result<()> {
-        // Create a list of both the explicit dependencies specified in the `.leo` file, as well as the implicit ones derived from those dependencies.
-        let (mut unexplored, mut explored): (IndexSet<Symbol>, IndexSet<Symbol>) =
-            (self.ast.ast.imports.keys().cloned().collect(), IndexSet::new());
-        while !unexplored.is_empty() {
-            let mut current_dependencies: IndexSet<Symbol> = IndexSet::new();
-            for program_name in unexplored.iter() {
-                if let Some(stub) = self.import_stubs.get(program_name) {
-                    // Add the program to the explored set
-                    explored.insert(*program_name);
-                    for dependency in stub.imports.iter() {
-                        // If dependency is already explored then don't need to re-explore it
-                        if explored.insert(dependency.name.name) {
-                            current_dependencies.insert(dependency.name.name);
-                        }
-                    }
-                } else {
-                    return Err(CompilerError::imported_program_not_found(
-                        self.program_name.clone(),
-                        *program_name,
-                        self.ast.ast.imports[program_name].1,
-                    )
-                    .into());
-                }
-            }
+    /// Writes the AST to a file (Leo syntax, not JSON).
+    fn write_ast(&self, file_suffix: &str) -> Result<()> {
+        let filename = format!("{}.{file_suffix}", self.program_name.as_ref().unwrap());
+        let full_filename = self.output_directory.join(&filename);
+        let contents = self.state.ast.ast.to_string();
+        fs::write(&full_filename, contents).map_err(|e| CompilerError::failed_ast_file(full_filename.display(), e))?;
+        Ok(())
+    }
 
-            // Create next batch to explore
-            unexplored = current_dependencies;
+    /// Merge the imported stubs which are dependencies of the current program into the AST
+    /// in topological order.
+    pub fn add_import_stubs(&mut self) -> Result<()> {
+        let mut explored = IndexSet::<Symbol>::new();
+        let mut to_explore: Vec<Symbol> = self.state.ast.ast.imports.keys().cloned().collect();
+
+        while let Some(import) = to_explore.pop() {
+            explored.insert(import);
+            if let Some(stub) = self.import_stubs.get(&import) {
+                for new_import_id in stub.imports.iter() {
+                    if !explored.contains(&new_import_id.name.name) {
+                        to_explore.push(new_import_id.name.name);
+                    }
+                }
+            } else {
+                return Err(CompilerError::imported_program_not_found(
+                    self.program_name.as_ref().unwrap(),
+                    import,
+                    self.state.ast.ast.imports[&import].1,
+                )
+                .into());
+            }
         }
 
-        // Combine the dependencies from `program.json` and `.leo` file while preserving the post-order
-        self.ast.ast.stubs =
-            self.import_stubs.clone().into_iter().filter(|(program_name, _)| explored.contains(program_name)).collect();
+        // Iterate in the order of `import_stubs` to make sure they
+        // stay topologically sorted.
+        self.state.ast.ast.stubs = self
+            .import_stubs
+            .iter()
+            .filter(|(symbol, _stub)| explored.contains(*symbol))
+            .map(|(symbol, stub)| (*symbol, stub.clone()))
+            .collect();
         Ok(())
     }
 }

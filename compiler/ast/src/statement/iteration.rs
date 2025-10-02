@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Block, Expression, Identifier, Indent, Node, NodeID, Type, Value};
+use crate::{Block, Expression, Identifier, Indent, Node, NodeID, Statement, Type};
 
 use leo_span::Span;
 
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fmt};
+use std::fmt;
 
 /// A bounded `for` loop statement `for variable in start .. =? stop block`.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
@@ -27,17 +27,11 @@ pub struct IterationStatement {
     /// The binding / variable to introduce in the body `block`.
     pub variable: Identifier,
     /// The type of the iteration.
-    pub type_: Type,
+    pub type_: Option<Type>,
     /// The start of the iteration.
     pub start: Expression,
-    /// The concrete value of `start`.
-    #[serde(skip)]
-    pub start_value: RefCell<Option<Value>>,
     /// The end of the iteration, possibly `inclusive`.
     pub stop: Expression,
-    /// The concrete value of `stop`.
-    #[serde(skip)]
-    pub stop_value: RefCell<Option<Value>>,
     /// Whether `stop` is inclusive or not.
     /// Signified with `=` when parsing.
     pub inclusive: bool,
@@ -52,11 +46,21 @@ pub struct IterationStatement {
 impl fmt::Display for IterationStatement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let eq = if self.inclusive { "=" } else { "" };
-        writeln!(f, "for {}: {} in {}..{eq}{} {{", self.variable, self.type_, self.start, self.stop)?;
+        if let Some(ty) = &self.type_ {
+            writeln!(f, "for {}: {} in {}..{eq}{} {{", self.variable, ty, self.start, self.stop)?;
+        } else {
+            writeln!(f, "for {} in {}..{eq}{} {{", self.variable, self.start, self.stop)?;
+        }
         for stmt in self.block.statements.iter() {
             writeln!(f, "{}{}", Indent(stmt), stmt.semicolon())?;
         }
         writeln!(f, "}}")
+    }
+}
+
+impl From<IterationStatement> for Statement {
+    fn from(value: IterationStatement) -> Self {
+        Statement::Iteration(Box::new(value))
     }
 }
 

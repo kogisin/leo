@@ -26,7 +26,7 @@ create_messages!(
     code_mask: 10000i32,
     code_prefix: "UTL",
 
-    @formatted
+    @backtraced
     util_file_io_error {
         args: (msg: impl Display, err: impl ErrorArg),
         msg: format!("File system io error: {msg}. Error: {err}"),
@@ -47,21 +47,21 @@ create_messages!(
         help: None,
     }
 
-    @formatted
+    @backtraced
     snarkvm_parsing_error {
         args: (name: impl Display),
         msg: format!("Failed to parse the source file for `{name}.aleo` into a valid Aleo program."),
         help: None,
     }
 
-    @formatted
+    @backtraced
     circular_dependency_error {
         args: (),
         msg: "Circular dependency detected".to_string(),
         help: None,
     }
 
-    @formatted
+    @backtraced
     network_error {
         args: (url: impl Display, status: impl Display),
         msg: format!("Failed network request to {url}. Status: {status}"),
@@ -75,6 +75,7 @@ create_messages!(
         help: None,
     }
 
+    // TODO: Unused, remove.
     @backtraced
     reqwest_error {
         args: (error: impl Display),
@@ -138,10 +139,10 @@ create_messages!(
         help: None,
     }
 
-    @formatted
+    @backtraced
     failed_to_retrieve_from_endpoint {
-        args: (error: impl ErrorArg),
-        msg: format!("{error}"),
+        args: (url: impl Display, error: impl Display),
+        msg: format!("Failed to retrieve from endpoint `{url}`: {error}"),
         help: None,
     }
 
@@ -206,5 +207,12 @@ create_messages!(
         args: (endpoint: impl Display),
         msg: format!("The endpoint `{endpoint}` has been permanently moved."),
         help: Some("Try using `https://api.explorer.provable.com/v1` in your `.env` file or via the `--endpoint` flag.".to_string()),
+    }
+
+    @backtraced
+    program_size_limit_exceeded {
+        args: (name: impl Display, size: usize, limit: usize),
+        msg: format!("Program `{name}.aleo` exceeds the maximum size limit. Program size: {size} bytes; maximum allowed: {limit} bytes."),
+        help: Some("Reduce the program size by removing unnecessary code, optimizing functions, or splitting the program into smaller programs.".to_string()),
     }
 );

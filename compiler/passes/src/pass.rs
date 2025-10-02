@@ -14,11 +14,50 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-/// A compiler pass consuming `Self::Input` and returning `Self::Output`.
+use crate::{Assigner, SymbolTable, TypeTable};
+
+use leo_ast::{Ast, CallGraph, NetworkName, NodeBuilder, StructGraph};
+use leo_errors::{Handler, LeoWarning, Result};
+
+use std::collections::HashSet;
+
+/// Contains data shared by many compiler passes.
+#[derive(Default)]
+pub struct CompilerState {
+    /// The Abstract Syntax Tree.
+    pub ast: Ast,
+    /// The error Handler.
+    pub handler: Handler,
+    /// Maps node IDs to types.
+    pub type_table: TypeTable,
+    /// Creates incrementing node IDs.
+    pub node_builder: NodeBuilder,
+    /// Creates unique symbols and definitions.
+    pub assigner: Assigner,
+    /// Contains data about the variables and other entities in the program.
+    pub symbol_table: SymbolTable,
+    /// A graph of which structs refer to each other.
+    pub struct_graph: StructGraph,
+    /// A graph of which functions call each other.
+    pub call_graph: CallGraph,
+    /// A set of the warnings collected. This is used to make sure we don't emit the same exact warning twice.
+    pub warnings: HashSet<LeoWarning>,
+    /// Is this a test program?
+    pub is_test: bool,
+    /// The network.
+    pub network: NetworkName,
+}
+
+/// A compiler pass.
+///
+/// Every pass has access to `CompilerState`, and may also specify
+/// an `Input` and `Output`.
 pub trait Pass {
     type Input;
     type Output;
 
+    const NAME: &str;
+
     /// Runs the compiler pass.
-    fn do_pass(input: Self::Input) -> Self::Output;
+    fn do_pass(input: Self::Input, state: &mut CompilerState) -> Result<Self::Output>;
 }

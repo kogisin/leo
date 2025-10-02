@@ -15,12 +15,11 @@
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
 use leo_lang::cli::*;
-use leo_span::symbol::create_session_if_not_set_then;
+use leo_span::create_session_if_not_set_then;
 
 use clap::Parser;
 
 fn set_panic_hook() {
-    #[cfg(not(debug_assertions))]
     std::panic::set_hook({
         Box::new(move |e| {
             eprintln!("thread `{}` {}", std::thread::current().name().unwrap_or("<unnamed>"), e);

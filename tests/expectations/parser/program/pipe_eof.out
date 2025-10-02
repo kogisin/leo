@@ -1,8 +1,5 @@
-namespace = "Parse"
-expectation = "Fail"
-outputs = ["""
-Error [EPAR0370005]: expected : -- found '='
-    --> test:5:15
+Error [EPAR0370005]: expected '}', '@', 'record', 'struct', 'async', 'const', 'function', 'inline', 'mapping', 'script', 'transition' -- found '|'
+    --> test:6:5
      |
-   5 |         let x = 1u8;
-     |               ^"""]
+   6 |     |}
+     |     ^

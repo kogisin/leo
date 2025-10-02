@@ -1,7 +1,3 @@
-/*
-namespace = "Compile"
-expectation = "Fail"
-*/
 
 program child.aleo {
     record R {
@@ -11,7 +7,7 @@ program child.aleo {
 
     transition create() -> R {
         return R {
-            owner: self.caller,
+            owner: self.signer,
             x: 1u8,
         };
     }
@@ -28,7 +24,7 @@ program parent.aleo {
 
     transition check() -> bool {
         let r1: R = R {
-            owner: self.caller,
+            owner: self.signer,
             x: 1u16,
         };
 

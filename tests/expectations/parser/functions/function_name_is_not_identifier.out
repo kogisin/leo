@@ -1,8 +1,5 @@
-namespace = "Parse"
-expectation = "Fail"
-outputs = ["""
-Error [EPAR0370005]: expected an identifier -- found '100u8'
-    --> test:5:16
+Error [EPAR0370005]: expected '&&', '||', '&', '|', '^', '==', '!=', '<', '<=', '>', '>=', '+', '-', '*', '/', '**', '%', '<<', '>>', '[', '.', ';', '?', 'as' -- found '('
+    --> test:4:21
      |
-   5 |         return 100u8(0u8);
-     |                ^^^^^"""]
+   4 |         return 100u8(0u8);
+     |                     ^

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use leo_ast::{Block, ExpressionReconstructor, Statement, StatementReconstructor, *};
+use leo_ast::{AstReconstructor, Block, Statement, *};
 
 use crate::SymbolTable;
 
@@ -38,16 +38,15 @@ impl Duplicator<'_> {
     }
 }
 
-impl ExpressionReconstructor for Duplicator<'_> {
+impl AstReconstructor for Duplicator<'_> {
     type AdditionalOutput = ();
-}
 
-impl StatementReconstructor for Duplicator<'_> {
+    /* Statements */
     fn reconstruct_statement(&mut self, input: Statement) -> (Statement, Self::AdditionalOutput) {
         match input {
             Statement::Block(stmt) => {
                 let (stmt, output) = self.reconstruct_block(stmt);
-                (Statement::Block(stmt), output)
+                (stmt.into(), output)
             }
             Statement::Conditional(stmt) => self.reconstruct_conditional(stmt),
             Statement::Iteration(stmt) => self.reconstruct_iteration(*stmt),
@@ -71,7 +70,7 @@ impl StatementReconstructor for Duplicator<'_> {
             input.otherwise = Some(otherwise);
         }
 
-        (Statement::Conditional(input), Default::default())
+        (input.into(), Default::default())
     }
 
     fn reconstruct_iteration(&mut self, mut input: IterationStatement) -> (Statement, Self::AdditionalOutput) {
@@ -79,7 +78,7 @@ impl StatementReconstructor for Duplicator<'_> {
         self.in_scope_duped(next_id, input.id(), |slf| {
             input.id = next_id;
             input.block = slf.reconstruct_block(input.block).0;
-            (Statement::Iteration(Box::new(input)), Default::default())
+            (input.into(), Default::default())
         })
     }
 }

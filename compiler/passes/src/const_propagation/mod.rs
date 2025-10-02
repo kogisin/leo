@@ -14,44 +14,91 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Pass, SymbolTable, TypeTable};
+use crate::Pass;
 
-use leo_ast::{Ast, NodeBuilder, ProgramReconstructor as _};
-use leo_errors::{Result, emitter::Handler};
-use leo_span::Span;
+use leo_ast::ProgramReconstructor as _;
+use leo_errors::Result;
+use leo_span::{Span, Symbol};
 
-mod const_propagate_expression;
+mod ast;
 
-mod const_propagate_program;
+mod program;
 
-mod const_propagate_statement;
+mod visitor;
+pub use visitor::ConstPropagationVisitor;
 
-mod const_propagator;
-
-pub use const_propagator::ConstPropagator;
-
-pub struct ConstPropagatorOutput {
+pub struct ConstPropagationOutput {
     /// Something about the program was actually changed during the pass.
     pub changed: bool,
     /// A const declaration whose RHS was not able to be evaluated.
     pub const_not_evaluated: Option<Span>,
     /// An array index which was not able to be evaluated.
     pub array_index_not_evaluated: Option<Span>,
+    /// An array length which was not able to be evaluated.
+    pub array_length_not_evaluated: Option<Span>,
+    /// A repeat expression count which was not able to be evaluated.
+    pub repeat_count_not_evaluated: Option<Span>,
 }
 
-impl<'a> Pass for ConstPropagator<'a> {
-    type Input = (Ast, &'a Handler, &'a mut SymbolTable, &'a TypeTable, &'a NodeBuilder);
-    type Output = Result<(Ast, ConstPropagatorOutput)>;
+/// A pass to perform const propagation and folding.
+///
+/// This pass should be used in conjunction with the Unroller so that
+/// loop bounds and consts in loop bodies can be evaluated.
+///
+/// Any of these expressions:
+/// 1. unary operation,
+/// 2. binary operation,
+/// 3. core functions other than cheat codes, mapping ops, or rand functions,
+///
+/// whose arguments are consts or literals will be subject to constant folding.
+/// The ternary conditional operator will also be folded if its condition is
+/// a constant or literal.
+///
+/// This includes the LHS of assignment statements which include array indices.
+pub struct ConstPropagation;
 
-    fn do_pass((ast, handler, symbol_table, type_table, node_builder): Self::Input) -> Self::Output {
-        let mut reconstructor = ConstPropagator::new(handler, symbol_table, type_table, node_builder);
-        let program = reconstructor.reconstruct_program(ast.into_repr());
-        handler.last_err().map_err(|e| *e)?;
+impl Pass for ConstPropagation {
+    type Input = ();
+    type Output = ConstPropagationOutput;
 
-        Ok((Ast::new(program), ConstPropagatorOutput {
-            changed: reconstructor.changed,
-            const_not_evaluated: reconstructor.const_not_evaluated,
-            array_index_not_evaluated: reconstructor.array_index_not_evaluated,
-        }))
+    const NAME: &str = "ConstPropagation";
+
+    fn do_pass(_input: Self::Input, state: &mut crate::CompilerState) -> Result<Self::Output> {
+        let mut ast = std::mem::take(&mut state.ast);
+        let mut visitor = ConstPropagationVisitor {
+            state,
+            program: Symbol::intern(""),
+            module: vec![],
+            changed: false,
+            const_not_evaluated: None,
+            array_index_not_evaluated: None,
+            array_length_not_evaluated: None,
+            repeat_count_not_evaluated: None,
+        };
+        ast.ast = visitor.reconstruct_program(ast.ast);
+        visitor.state.handler.last_err()?;
+        visitor.state.ast = ast;
+        Ok(ConstPropagationOutput {
+            changed: visitor.changed,
+            const_not_evaluated: visitor.const_not_evaluated,
+            array_index_not_evaluated: visitor.array_index_not_evaluated,
+            array_length_not_evaluated: visitor.array_length_not_evaluated,
+            repeat_count_not_evaluated: visitor.repeat_count_not_evaluated,
+        })
+    }
+}
+
+impl<'a> ConstPropagationVisitor<'a> {
+    pub fn new(state: &'a mut crate::CompilerState, program: Symbol) -> Self {
+        ConstPropagationVisitor {
+            state,
+            program,
+            module: vec![],
+            changed: false,
+            const_not_evaluated: None,
+            array_index_not_evaluated: None,
+            array_length_not_evaluated: None,
+            repeat_count_not_evaluated: None,
+        }
     }
 }

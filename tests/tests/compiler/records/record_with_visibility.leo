@@ -1,7 +1,3 @@
-/*
-namespace = "Compile"
-expectation = "Pass"
-*/
 
 program test.aleo {
     record Token {
@@ -14,6 +10,6 @@ program test.aleo {
     }
 
     transition main(a: u64, b:u64) -> Token {
-        return Token { amount: a + b, owner: self.caller, flag: true};
+        return Token { amount: a + b, owner: self.signer, flag: true};
     }
 }

@@ -1,0 +1,319 @@
+{
+  "Cast": {
+    "expression": {
+      "Path": {
+        "qualifier": [],
+        "identifier": {
+          "name": "foo",
+          "span": {
+            "lo": 0,
+            "hi": 3
+          },
+          "id": 2
+        },
+        "absolute_path": null,
+        "span": {
+          "lo": 0,
+          "hi": 3
+        },
+        "id": 1
+      }
+    },
+    "type_": {
+      "Integer": "U8"
+    },
+    "span": {
+      "lo": 0,
+      "hi": 9
+    },
+    "id": 0
+  }
+}
+
+{
+  "Cast": {
+    "expression": {
+      "Literal": {
+        "span": {
+          "lo": 10,
+          "hi": 15
+        },
+        "id": 1,
+        "variant": {
+          "Integer": [
+            "U128",
+            "1"
+          ]
+        }
+      }
+    },
+    "type_": {
+      "Integer": "I8"
+    },
+    "span": {
+      "lo": 10,
+      "hi": 21
+    },
+    "id": 0
+  }
+}
+
+{
+  "Cast": {
+    "expression": {
+      "Struct": {
+        "path": {
+          "qualifier": [],
+          "identifier": {
+            "name": "baz",
+            "span": {
+              "lo": 22,
+              "hi": 25
+            },
+            "id": 5
+          },
+          "absolute_path": null,
+          "span": {
+            "lo": 22,
+            "hi": 25
+          },
+          "id": 6
+        },
+        "const_arguments": [],
+        "members": [
+          {
+            "identifier": {
+              "name": "foo",
+              "span": {
+                "lo": 28,
+                "hi": 31
+              },
+              "id": 3
+            },
+            "expression": {
+              "Literal": {
+                "span": {
+                  "lo": 33,
+                  "hi": 36
+                },
+                "id": 2,
+                "variant": {
+                  "Integer": [
+                    "U8",
+                    "0"
+                  ]
+                }
+              }
+            },
+            "span": {
+              "lo": 28,
+              "hi": 36
+            },
+            "id": 4
+          }
+        ],
+        "span": {
+          "lo": 22,
+          "hi": 38
+        },
+        "id": 1
+      }
+    },
+    "type_": "Scalar",
+    "span": {
+      "lo": 22,
+      "hi": 48
+    },
+    "id": 0
+  }
+}
+
+{
+  "Ternary": {
+    "condition": {
+      "Path": {
+        "qualifier": [],
+        "identifier": {
+          "name": "flag",
+          "span": {
+            "lo": 49,
+            "hi": 53
+          },
+          "id": 2
+        },
+        "absolute_path": null,
+        "span": {
+          "lo": 49,
+          "hi": 53
+        },
+        "id": 1
+      }
+    },
+    "if_true": {
+      "Literal": {
+        "span": {
+          "lo": 56,
+          "hi": 59
+        },
+        "id": 3,
+        "variant": {
+          "Integer": [
+            "U8",
+            "1"
+          ]
+        }
+      }
+    },
+    "if_false": {
+      "Cast": {
+        "expression": {
+          "Literal": {
+            "span": {
+              "lo": 62,
+              "hi": 65
+            },
+            "id": 5,
+            "variant": {
+              "Integer": [
+                "U8",
+                "0"
+              ]
+            }
+          }
+        },
+        "type_": "Scalar",
+        "span": {
+          "lo": 62,
+          "hi": 75
+        },
+        "id": 4
+      }
+    },
+    "span": {
+      "lo": 49,
+      "hi": 75
+    },
+    "id": 0
+  }
+}
+
+{
+  "Cast": {
+    "expression": {
+      "Ternary": {
+        "condition": {
+          "Path": {
+            "qualifier": [],
+            "identifier": {
+              "name": "flag",
+              "span": {
+                "lo": 77,
+                "hi": 81
+              },
+              "id": 4
+            },
+            "absolute_path": null,
+            "span": {
+              "lo": 77,
+              "hi": 81
+            },
+            "id": 3
+          }
+        },
+        "if_true": {
+          "Literal": {
+            "span": {
+              "lo": 84,
+              "hi": 87
+            },
+            "id": 5,
+            "variant": {
+              "Integer": [
+                "U8",
+                "1"
+              ]
+            }
+          }
+        },
+        "if_false": {
+          "Literal": {
+            "span": {
+              "lo": 90,
+              "hi": 93
+            },
+            "id": 6,
+            "variant": {
+              "Integer": [
+                "U8",
+                "0"
+              ]
+            }
+          }
+        },
+        "span": {
+          "lo": 77,
+          "hi": 93
+        },
+        "id": 2
+      }
+    },
+    "type_": "Scalar",
+    "span": {
+      "lo": 76,
+      "hi": 104
+    },
+    "id": 0
+  }
+}
+
+{
+  "Cast": {
+    "expression": {
+      "Literal": {
+        "span": {
+          "lo": 105,
+          "hi": 109
+        },
+        "id": 1,
+        "variant": {
+          "Integer": [
+            "I8",
+            "34"
+          ]
+        }
+      }
+    },
+    "type_": "Field",
+    "span": {
+      "lo": 105,
+      "hi": 118
+    },
+    "id": 0
+  }
+}
+
+{
+  "Cast": {
+    "expression": {
+      "Literal": {
+        "span": {
+          "lo": 119,
+          "hi": 137
+        },
+        "id": 1,
+        "variant": {
+          "Field": "0925348043850"
+        }
+      }
+    },
+    "type_": {
+      "Integer": "I8"
+    },
+    "span": {
+      "lo": 119,
+      "hi": 143
+    },
+    "id": 0
+  }
+}
+
